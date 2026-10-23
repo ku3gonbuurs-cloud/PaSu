@@ -383,7 +383,7 @@ function payload(){return JSON.stringify({app:'pachi-balance',version:1,exported
 function setMsg(t){S.msg=t;var m=document.getElementById('msg');if(m)m.textContent=t}
 function viewData(){
   var h=bkBanner(true)+'<div class="card"><h2>書き出し(今の端末で)</h2><div class="sub">'+E.length+'件の記録をバックアップします。<br>最後の書き出し: '+(ST.last||'まだありません')+'</div>';
-  h+='<button class="go" id="exp-file">ファイルに保存</button><button class="go" id="exp-show" style="background:var(--sub)">テキストで表示してコピー</button>';
+  h+='<button class="go" id="exp-file">ファイルに保存</button><button class="go" id="exp-share" style="background:var(--sub)">共有で保存(メモ・ファイルなど)</button><button class="go" id="exp-show" style="background:var(--sub)">テキストで表示してコピー</button>';
   if(S.showExp)h+='<textarea id="exp-text" readonly>'+esc(payload())+'</textarea><div class="sub">全選択してコピーし、メモなどに貼り付けて保管してください。</div>';
   h+='</div><div class="card"><h2>読み込み(新しい端末で)</h2><div class="sub">保存したファイルを選ぶか、コピーしたテキストを貼り付けてください。</div>';
   h+='<label>ファイル</label><input type="file" id="imp-file" accept=".json,.txt,application/json,text/plain"><label>またはテキスト</label><textarea id="imp-text" placeholder="ここに貼り付け"></textarea>';
@@ -416,13 +416,35 @@ function doImport(replace){
   if(bad)S.msg+=' / 形式不正'+bad+'件は無視';
   save();render();
 }
+function markSaved(t){ST.last=today();saveST();setMsg(t)}
+function backupName(ext){return 'syushi-'+today().replace(/-/g,'')+'.'+ext}
 async function expFile(){
+  var data=payload();
   try{
-    var dl=window.claude&&await claude.use('downloads');
-    if(!dl)return setMsg('この画面ではファイル保存が使えません。「テキストで表示」を使ってください');
-    await dl.save({filename:'syushi-'+today().replace(/-/g,'')+'.json',data:payload()});
-    ST.last=today();saveST();setMsg('保存しました');
-  }catch(err){setMsg(err&&err.code==='declined'?'キャンセルしました':'保存できませんでした。「テキストで表示」を使ってください')}
+    var dl=null;
+    try{dl=(window.claude&&claude.use)?await claude.use('downloads'):null}catch(e){dl=null}
+    if(dl){await dl.save({filename:backupName('json'),data:data});return markSaved('保存しました')}
+  }catch(err){
+    if(err&&err.code==='declined')return setMsg('キャンセルしました');
+  }
+  try{
+    var url=URL.createObjectURL(new Blob([data],{type:'application/json'})),a=document.createElement('a');
+    a.href=url;a.download=backupName('json');document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url)},5000);
+    return markSaved('ダウンロードを開始しました。保存されないときは「共有で保存」か「テキストで表示」を使ってください');
+  }catch(err2){}
+  setMsg('この画面ではファイル保存が使えません。「共有で保存」か「テキストで表示」を使ってください');
+}
+async function expShare(){
+  var data=payload();
+  try{
+    var f=new File([data],backupName('txt'),{type:'text/plain'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'PaSu収支帳 バックアップ'});return markSaved('共有しました')}
+    if(navigator.share){await navigator.share({title:'PaSu収支帳 バックアップ',text:data});return markSaved('共有しました')}
+    setMsg('この端末では共有が使えません。「テキストで表示」を使ってください');
+  }catch(err){
+    setMsg(err&&err.name==='AbortError'?'キャンセルしました':'共有できませんでした。「テキストで表示」を使ってください');
+  }
 }
 document.addEventListener('change',function(e){
   var id=e.target.id;S.openRate=null;
@@ -489,6 +511,7 @@ document.addEventListener('click',function(ev){
   }
   if(b.id==='exp-file')return expFile();
   if(b.id==='exp-show'){S.showExp=true;ST.last=today();saveST();render();var t=document.getElementById('exp-text');if(t){t.focus();t.select();try{navigator.clipboard.writeText(t.value).then(function(){setMsg('コピーしました')},function(){})}catch(err){}}return}
+  if(b.id==='exp-share')return expShare();
   if(b.id==='imp-add')return doImport(false);
   if(b.id==='imp-rep')return doImport(true);
   if(b.id==='cancel'){closeForm();return render()}
