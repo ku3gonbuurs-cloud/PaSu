@@ -54,6 +54,9 @@ select{padding:8px 4px;border:1px solid var(--line);border-radius:10px;backgroun
 .nav{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px}
 .nav select{padding:6px 2px;font-size:17px}
 .nav .tdy{font-size:15px;padding:8px 10px;white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--tx);border-radius:18px;padding:8px 12px;font-size:15px;font-family:inherit}
+.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
 .row .r .am{display:inline-block;min-width:104px;text-align:right}
 .row .r small.w{display:inline-block;width:98px;text-align:left;margin-left:10px;font-size:13px;vertical-align:baseline}
 .row.rl{width:100%;background:none;border:0;border-top:1px solid var(--line);color:var(--tx);font:inherit;text-align:left;padding:9px 0;cursor:pointer}
@@ -112,7 +115,12 @@ function cls(n){return n>0?'pl':n<0?'mi':''}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function sum(a,k){return a.reduce(function(s,e){return s+e[k]},0)}
 function group(a,fn){var m={};a.forEach(function(e){var k=fn(e);m[k]=(m[k]||0)+e.amount});return m}
-function stores(){var s={};E.forEach(function(e){if(e.store)s[e.store]=1});return Object.keys(s)}
+var storeCnt={};
+function stores(){
+  var m={};E.forEach(function(e){if(!e.store)return;(m[e.store]=m[e.store]||{})[e.date]=1});
+  storeCnt={};var k=Object.keys(m);k.forEach(function(x){storeCnt[x]=Object.keys(m[x]).length});
+  return k.sort(function(a,b){return storeCnt[b]-storeCnt[a]||(a<b?-1:1)});
+}
 var HC={};
 function nthMon(y,m,n){var f=new Date(y,m-1,1).getDay();return 1+((8-f)%7)+(n-1)*7}
 function holidays(y){
@@ -192,6 +200,15 @@ function calAmt(v){
   t.split('').forEach(function(ch){em+=/\d/.test(ch)?.58:(ch===','||ch==='.')?.3:ch==='万'?1.05:.62});
   return '<b class="'+cls(v)+'" style="font-size:min(14px,'+(94/em).toFixed(1)+'cqw)">'+t+'</b>';
 }
+function storeList(){
+  var m={};E.forEach(function(e){if(!e.store)return;var o=m[e.store]||(m[e.store]={n:0,d:''});o.n++;if(e.date>o.d)o.d=e.date});
+  return Object.keys(m).sort(function(a,b){return m[b].d<m[a].d?-1:m[b].d>m[a].d?1:m[b].n-m[a].n});
+}
+function storeChips(cur){
+  var l=storeList();if(!l.length)return '';
+  var show=S.allStores?l:l.slice(0,8);
+  return '<div class="chips">'+show.map(function(x){return '<button class="chip'+(cur===x?' on':'')+'" data-store="'+esc(x)+'">'+esc(x)+'</button>'}).join('')+(l.length>8?'<button class="chip" id="stores-more">'+(S.allStores?'閉じる':'＋ すべて ('+l.length+')')+'</button>':'')+'</div>';
+}
 function recRow(e){
   return '<button class="row rl" data-goday="'+e.date+'" style="padding:7px 0"><div class="l"><b class="'+(isRed(e.date)?'hd':'')+'">'+e.date.slice(0,4)+'/'+Number(e.date.slice(5,7))+'/'+Number(e.date.slice(8))+'('+dow(e.date)+')</b> '+esc(e.store||'(店舗名なし)')+'<small>投資'+e.inv.toLocaleString()+' / 回収'+e.rec.toLocaleString()+(e.memo?' ・ '+esc(e.memo):'')+'</small></div><div class="r"><b class="'+cls(e.amount)+'">'+yen(e.amount)+'</b> <span class="sub">›</span></div></button>';
 }
@@ -229,7 +246,7 @@ function viewCal(){
     h+='</div>';
     if(S.form){h+='<div class="card"><h2>'+(S.edit?'記録を編集':'この日の収支を入力')+'</h2>';
     if(S.edit)h+='<label>日付</label><input type="date" id="f-date" value="'+esc(f.date||S.sel)+'">';
-    h+='<label>店舗</label><input type="text" id="f-store" list="stl" placeholder="店名(空でもOK)" value="'+esc(f.store)+'"><datalist id="stl">'+stores().map(function(s){return '<option value="'+esc(s)+'">'}).join('')+'</datalist>';
+    h+='<label>店舗</label><input type="text" id="f-store" list="stl" placeholder="店名(空でもOK)" value="'+esc(f.store)+'"><datalist id="stl">'+stores().map(function(s){return '<option value="'+esc(s)+'" label="'+storeCnt[s]+'回">'}).join('')+'</datalist>';
     h+='<label>機種</label><div class="seg"><button data-kind="slot" class="k-slot '+(f.kind==='slot'?'on':'')+'">スロット</button><button data-kind="pachi" class="k-pachi '+(f.kind==='pachi'?'on':'')+'">パチンコ</button><button data-kind="other" class="k-other '+(f.kind==='other'?'on':'')+'" style="flex:.85 1 0;font-size:15px">その他</button></div>';
     var rl=RATES[f.kind].slice();if(f.rate&&rl.indexOf(f.rate)<0)rl.push(f.rate);
     h+='<label>レート'+(f.kind==='other'?'(任意)':'')+'</label><div class="seg g3">'+rl.map(function(r){return '<button data-rate="'+esc(r)+'" class="k-'+f.kind+' '+(f.rate===r?'on':'')+'">'+esc(r)+'</button>'}).join('')+'</div><div class="seg" style="margin-top:8px"><button id="rate-open" style="flex:0 0 88px;font-size:15px">＋追加</button><button id="rate-del" style="flex:0 0 88px;font-size:15px"'+(X[f.kind].indexOf(f.rate)<0?' disabled':'')+'>削除</button></div>';
@@ -436,6 +453,8 @@ document.addEventListener('click',function(ev){
   if(d.delrate){readForm();var kk=S.f.kind;X[kk]=X[kk].filter(function(r){return r!==d.delrate});syncRates();saveRates();if(S.f.rate===d.delrate)S.f.rate=DEF[kk];return render()}
   if(d.rate){readForm();S.f.rate=(S.f.kind==='other'&&S.f.rate===d.rate)?'':d.rate;return render()}
   if(d.orate){S.openRate=(S.openRate===d.orate)?null:d.orate;return render()}
+  if(d.store){readForm();S.f.store=(S.f.store===d.store)?'':d.store;return render()}
+  if(b.id==='stores-more'){readForm();S.allStores=!S.allStores;return render()}
   if(d.today){if(d.today==='mo'){S.ym=today().slice(0,7);S.sel=today();closeForm()}else S.y=today().slice(0,4);return render()}
   if(d.goday){readForm();closeForm();S.tab='cal';S.ym=d.goday.slice(0,7);S.sel=d.goday;render();var dc=document.getElementById('daycard');if(dc)dc.scrollIntoView({block:'center'});return}
   if(d.gomonth){S.tab='an';S.an='mo';S.ym=d.gomonth;S.sel=null;closeForm();render();window.scrollTo(0,0);return}
