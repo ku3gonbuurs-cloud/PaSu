@@ -54,6 +54,10 @@ select{padding:8px 4px;border:1px solid var(--line);border-radius:10px;backgroun
 .nav{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px}
 .nav select{padding:6px 2px;font-size:17px}
 .nav .tdy{font-size:15px;padding:8px 10px;white-space:nowrap}
+.sugg{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:4px;background:var(--card)}
+.sugg:empty{display:none}
+.sg{border:0;border-top:1px solid var(--line);background:var(--card);color:var(--tx);padding:12px;font-size:17px;text-align:left;font-family:inherit}
+.sg:first-child{border-top:0}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .chip{border:1px solid var(--line);background:var(--bg);color:var(--tx);border-radius:18px;padding:8px 12px;font-size:15px;font-family:inherit}
 .chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
@@ -200,6 +204,14 @@ function calAmt(v){
   t.split('').forEach(function(ch){em+=/\d/.test(ch)?.58:(ch===','||ch==='.')?.3:ch==='万'?1.05:.62});
   return '<b class="'+cls(v)+'" style="font-size:min(14px,'+(94/em).toFixed(1)+'cqw)">'+t+'</b>';
 }
+function norm(t){return String(t).normalize('NFKC').toLowerCase().replace(/[ぁ-ゖ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)+96)})}
+function showSugg(){
+  var el=document.getElementById('sugg'),inp=document.getElementById('f-store');if(!el||!inp)return;
+  var v=inp.value.trim(),q=norm(v),l=stores();
+  var r=l.filter(function(x){return x!==v&&(!q||norm(x).indexOf(q)>=0)});
+  r.sort(function(a,b){var pa=q&&norm(a).indexOf(q)===0?0:1,pb=q&&norm(b).indexOf(q)===0?0:1;return pa-pb||storeCnt[b]-storeCnt[a]});
+  el.innerHTML=r.slice(0,6).map(function(x){return '<button class="sg" data-sg="'+esc(x)+'">'+esc(x)+'<span class="sub"> '+storeCnt[x]+'回</span></button>'}).join('');
+}
 function storeList(){
   var m={};E.forEach(function(e){if(!e.store)return;var o=m[e.store]||(m[e.store]={n:0,d:''});o.n++;if(e.date>o.d)o.d=e.date});
   return Object.keys(m).sort(function(a,b){return m[b].d<m[a].d?-1:m[b].d>m[a].d?1:m[b].n-m[a].n});
@@ -246,7 +258,7 @@ function viewCal(){
     h+='</div>';
     if(S.form){h+='<div class="card"><h2>'+(S.edit?'記録を編集':'この日の収支を入力')+'</h2>';
     if(S.edit)h+='<label>日付</label><input type="date" id="f-date" value="'+esc(f.date||S.sel)+'">';
-    h+='<label>店舗</label><input type="text" id="f-store" list="stl" placeholder="店名(空でもOK)" value="'+esc(f.store)+'"><datalist id="stl">'+stores().map(function(s){return '<option value="'+esc(s)+'" label="'+storeCnt[s]+'回">'}).join('')+'</datalist>';
+    h+='<label>店舗</label><input type="text" id="f-store" autocomplete="off" placeholder="店名(空でもOK)" value="'+esc(f.store)+'"><div class="sugg" id="sugg"></div>';
     h+='<label>機種</label><div class="seg"><button data-kind="slot" class="k-slot '+(f.kind==='slot'?'on':'')+'">スロット</button><button data-kind="pachi" class="k-pachi '+(f.kind==='pachi'?'on':'')+'">パチンコ</button><button data-kind="other" class="k-other '+(f.kind==='other'?'on':'')+'" style="flex:.85 1 0;font-size:15px">その他</button></div>';
     var rl=RATES[f.kind].slice();if(f.rate&&rl.indexOf(f.rate)<0)rl.push(f.rate);
     h+='<label>レート'+(f.kind==='other'?'(任意)':'')+'</label><div class="seg g3">'+rl.map(function(r){return '<button data-rate="'+esc(r)+'" class="k-'+f.kind+' '+(f.rate===r?'on':'')+'">'+esc(r)+'</button>'}).join('')+'</div><div class="seg" style="margin-top:8px"><button id="rate-open" style="flex:0 0 88px;font-size:15px">＋追加</button><button id="rate-del" style="flex:0 0 88px;font-size:15px"'+(X[f.kind].indexOf(f.rate)<0?' disabled':'')+'>削除</button></div>';
@@ -428,7 +440,9 @@ function render(){
 function g(i){var x=document.getElementById(i);return x?x.value:''}
 function readForm(){if(!document.getElementById('f-store'))return;S.f.store=g('f-store');S.f.inv=g('f-inv');S.f.rec=g('f-rec');S.f.memo=g('f-memo');if(document.getElementById('f-date'))S.f.date=g('f-date')}
 function pv(){var x=document.getElementById('pv');if(!x)return;var v=(parseInt(g('f-rec'),10)||0)-(parseInt(g('f-inv'),10)||0);x.textContent=yen(v);x.className=cls(v)}
-document.addEventListener('input',function(e){if(e.target.id==='f-inv'||e.target.id==='f-rec')pv()});
+document.addEventListener('input',function(e){var id=e.target.id;if(id==='f-inv'||id==='f-rec')pv();if(id==='f-store')showSugg()});
+document.addEventListener('focusin',function(e){if(e.target.id==='f-store')showSugg()});
+document.addEventListener('focusout',function(e){if(e.target.id==='f-store')setTimeout(function(){var el=document.getElementById('sugg');if(el)el.innerHTML=''},400)});
 document.addEventListener('click',function(ev){
   var b=ev.target.closest('button');if(!b)return;var d=b.dataset;if(!d.del)S.delArm=null;if(!d.orate)S.openRate=null;
   if(d.t){readForm();S.tab=d.t;return render()}
@@ -453,6 +467,7 @@ document.addEventListener('click',function(ev){
   if(d.delrate){readForm();var kk=S.f.kind;X[kk]=X[kk].filter(function(r){return r!==d.delrate});syncRates();saveRates();if(S.f.rate===d.delrate)S.f.rate=DEF[kk];return render()}
   if(d.rate){readForm();S.f.rate=(S.f.kind==='other'&&S.f.rate===d.rate)?'':d.rate;return render()}
   if(d.orate){S.openRate=(S.openRate===d.orate)?null:d.orate;return render()}
+  if(d.sg!==undefined){var si=document.getElementById('f-store');if(si)si.value=d.sg;S.f.store=d.sg;var sg=document.getElementById('sugg');if(sg)sg.innerHTML='';return}
   if(d.store){readForm();S.f.store=(S.f.store===d.store)?'':d.store;return render()}
   if(b.id==='stores-more'){readForm();S.allStores=!S.allStores;return render()}
   if(d.today){if(d.today==='mo'){S.ym=today().slice(0,7);S.sel=today();closeForm()}else S.y=today().slice(0,4);return render()}
