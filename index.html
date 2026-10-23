@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PaSu収支帳</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--tx:#1d2330;--sub:#6b7385;--line:#e3e6ec;--ac:#2f5bd8;--pl:#0f8a4f;--mi:#d23b3b;--plb:#e4f5ec;--mib:#fbe7e7;--hd:#8e2fc4;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171d;--card:#1e232c;--tx:#e8ebf2;--sub:#98a1b3;--line:#2d3340;--ac:#6f93ff;--pl:#47c98a;--mi:#ff7b7b;--plb:#173a2a;--mib:#432326;--hd:#d39bff}}
+:root[data-theme="dark"]{--bg:#14171d;--card:#1e232c;--tx:#e8ebf2;--sub:#98a1b3;--line:#2d3340;--ac:#6f93ff;--pl:#47c98a;--mi:#ff7b7b;--plb:#173a2a;--mib:#432326;--hd:#d39bff}
+*{box-sizing:border-box}
+button{font-family:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:17px/1.5 -apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
+main{max-width:560px;margin:0 auto;padding:12px;zoom:var(--z,1)}
+html[data-fs="m"]{--z:1.15}
+html[data-fs="l"]{--z:1.3}
+.cal{zoom:calc(1 / var(--z,1))}
+h1{font-size:21px;margin:8px 0 10px}
+h2{font-size:17px;margin:0 0 8px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs button{flex:1;padding:12px 2px;border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:10px;font-size:15px}
+.tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:700}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:15px;color:var(--sub);margin:10px 0 4px}
+input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--tx);font-size:18px}
+textarea{width:100%;height:130px;margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--tx);font-size:15px}
+.two{display:flex;gap:8px}.two>div{flex:1}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1 1 28%;padding:13px 6px;border:1px solid var(--line);background:var(--bg);color:var(--tx);border-radius:10px;font-size:17px}
+.seg button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.seg button.on.k-pachi{background:#d97706;border-color:#d97706}
+.seg button.on.k-other{background:#64748b;border-color:#64748b}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.g3 button{flex:none;min-width:0}
+.seg button:disabled{opacity:.4}
+.nav .sel{display:flex;gap:4px;align-items:center;font-size:18px}
+select{padding:8px 4px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--tx);font-size:18px;font-family:inherit}
+.dh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.dh h2{margin:0}
+.dh button{border:0;border-radius:10px;background:var(--ac);color:#fff;font-size:16px;font-weight:700;padding:10px 16px;white-space:nowrap}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.top h1{margin:8px 0 10px}
+.fsz{display:flex;gap:4px;align-items:center;font-size:13px;color:var(--sub)}
+.fsz button{border:1px solid var(--line);background:var(--card);color:var(--tx);border-radius:8px;padding:6px 10px;font-size:14px;font-family:inherit}
+.fsz button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.bar{height:14px;background:var(--line);border-radius:7px;overflow:hidden;margin:6px 0}
+.bar i{display:block;height:100%}
+.go{width:100%;margin-top:12px;padding:12px;border:0;border-radius:12px;background:var(--ac);color:#fff;font-size:19px;font-weight:700}
+.big{font-size:38px;font-weight:700;text-align:center;margin:2px 0}
+.pl{color:var(--pl)}.mi{color:var(--mi)}.hd{color:var(--hd)}
+.sub{color:var(--sub);font-size:15px}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px}
+.nav select{padding:6px 2px;font-size:17px}
+.nav .tdy{font-size:15px;padding:8px 10px;white-space:nowrap}
+.row .r .am{display:inline-block;min-width:104px;text-align:right}
+.row .r small.w{display:inline-block;width:98px;text-align:left;margin-left:10px;font-size:13px;vertical-align:baseline}
+.row.rl{width:100%;background:none;border:0;border-top:1px solid var(--line);color:var(--tx);font:inherit;text-align:left;padding:9px 0;cursor:pointer}
+.row.rl:active{background:var(--bg)}
+.nav button{border:1px solid var(--line);background:var(--card);color:var(--tx);border-radius:10px;padding:8px 14px;font-size:22px}
+.nav b{font-size:20px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-top:1px solid var(--line);gap:8px}
+.row.f{border-top:0}
+.row .l{min-width:0}.row .r{text-align:right;white-space:nowrap}
+.row small{display:block;color:var(--sub);font-size:15px}
+.act button{border:0;background:none;color:var(--ac);font-size:16px;padding:8px 10px}
+.empty{color:var(--sub);text-align:center;padding:14px 0}
+.stat{display:flex;justify-content:space-around;margin-top:8px;text-align:center}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal .h{text-align:center;font-size:15px;color:var(--sub);padding:2px 0}
+.cal .d{min-height:68px;border:1px solid var(--line);border-radius:8px;padding:2px 1px 3px;background:var(--bg);color:var(--tx);text-align:center;font-size:13px;overflow:hidden;container-type:inline-size}
+.cal .d i{display:block;font-style:normal;font-size:17px;font-weight:600;color:var(--tx);text-align:left;padding-left:3px}
+.cal .d b{display:block;font-size:11px;letter-spacing:-.4px;margin-top:4px;white-space:nowrap}
+.cal .d b.sm{font-size:11px}
+.cal .d.p{background:var(--plb)}.cal .d.m{background:var(--mib)}
+.cal .d.t{border:2px solid var(--ac)}
+.cal .d.r i{color:var(--hd)}
+.cal .h.r{color:var(--hd)}
+.cal .d.s{outline:2px solid var(--ac)}
+.cal .e{visibility:hidden}
+.pv{text-align:center;margin-top:12px;font-size:24px;font-weight:700}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><h1>PaSu収支帳</h1><div class="fsz" id="fsz"></div></div>
+<div class="tabs" id="tabs"></div>
+<div id="view"></div>
+</main>
+<script>
+var KEY='pachi-v1',RKEY='pachi-rates-v1',BASE={slot:['5スロ','10スロ','20スロ','ジャグラー'],pachi:['0.5パチ','1パチ','4パチ'],other:[]},DEF={slot:'10スロ',pachi:'4パチ',other:''},X={slot:[],pachi:[],other:[]},KINDS=['slot','pachi','other'],RATES={},E=[];
+try{var xr=JSON.parse(localStorage.getItem(RKEY)||'{}');KINDS.forEach(function(k){if(Array.isArray(xr[k]))X[k]=xr[k].map(String).slice(0,30).filter(function(r){return BASE[k].indexOf(r)<0})})}catch(e){}
+function syncRates(){KINDS.forEach(function(k){var l=BASE[k].slice();X[k].forEach(function(r){if(l.indexOf(r)<0)l.push(r)});l.sort(function(a,b){var x=parseFloat(a),y=parseFloat(b);if(isNaN(x)&&isNaN(y))return 0;if(isNaN(x))return 1;if(isNaN(y))return -1;return x-y});RATES[k]=l})}
+syncRates();
+function saveRates(){try{localStorage.setItem(RKEY,JSON.stringify(X))}catch(e){}}
+var ST={fs:'s',limit:0,last:''};
+try{var sj=JSON.parse(localStorage.getItem('pachi-set-v1')||'{}');if(sj.fs)ST.fs=sj.fs;ST.limit=Number(sj.limit)||0;ST.last=sj.last||''}catch(e){}
+function saveST(){try{localStorage.setItem('pachi-set-v1',JSON.stringify(ST))}catch(e){}}
+function applyFs(){document.documentElement.setAttribute('data-fs',ST.fs)}
+applyFs();
+try{E=JSON.parse(localStorage.getItem(KEY)||'[]')||[]}catch(e){E=[]}
+E.forEach(function(e){if(e.inv===undefined){e.inv=e.amount<0?-e.amount:0;e.rec=e.amount>0?e.amount:0}});
+function save(){try{localStorage.setItem(KEY,JSON.stringify(E))}catch(e){}}
+function pad(n){return String(n).padStart(2,'0')}
+function today(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+var blank=function(){return{store:'',kind:'slot',rate:'10スロ',inv:'',rec:'',memo:''}};
+var S={tab:'cal',ym:today().slice(0,7),y:today().slice(0,4),sel:today(),edit:null,f:blank()};
+function yen(n){return (n>0?'+':n<0?'−':'')+Math.abs(n).toLocaleString()+'円'}
+function sh(n){return (n>0?'+':n<0?'−':'')+Math.abs(n).toLocaleString()}
+function cls(n){return n>0?'pl':n<0?'mi':''}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function sum(a,k){return a.reduce(function(s,e){return s+e[k]},0)}
+function group(a,fn){var m={};a.forEach(function(e){var k=fn(e);m[k]=(m[k]||0)+e.amount});return m}
+function stores(){var s={};E.forEach(function(e){if(e.store)s[e.store]=1});return Object.keys(s)}
+var HC={};
+function nthMon(y,m,n){var f=new Date(y,m-1,1).getDay();return 1+((8-f)%7)+(n-1)*7}
+function holidays(y){
+  if(HC[y])return HC[y];
+  var h={};function set(m,d,n){h[pad(m)+'-'+pad(d)]=n}
+  set(1,1,'元日');
+  if(y>=2000)set(1,nthMon(y,1,2),'成人の日');else set(1,15,'成人の日');
+  set(2,11,'建国記念の日');
+  if(y>=2020)set(2,23,'天皇誕生日');
+  var k=y-1980,sh=Math.floor(20.8431+0.242194*k-Math.floor(k/4)),au=Math.floor(23.2488+0.242194*k-Math.floor(k/4));
+  set(3,sh,'春分の日');
+  set(4,29,'昭和の日');set(5,3,'憲法記念日');set(5,4,'みどりの日');set(5,5,'こどもの日');
+  if(y===2019)set(5,1,'即位の日');
+  if(y===2020)set(7,23,'海の日');else if(y===2021)set(7,22,'海の日');else if(y>=2003)set(7,nthMon(y,7,3),'海の日');
+  if(y===2020)set(8,10,'山の日');else if(y===2021)set(8,8,'山の日');else if(y>=2016)set(8,11,'山の日');
+  if(y>=2003)set(9,nthMon(y,9,3),'敬老の日');
+  set(9,au,'秋分の日');
+  if(y===2020)set(7,24,'スポーツの日');else if(y===2021)set(7,23,'スポーツの日');
+  else if(y>=2020)set(10,nthMon(y,10,2),'スポーツの日');else if(y>=2000)set(10,nthMon(y,10,2),'体育の日');
+  if(y===2019)set(10,22,'即位礼正殿の儀');
+  set(11,3,'文化の日');set(11,23,'勤労感謝の日');
+  if(y>=1989&&y<=2018)set(12,23,'天皇誕生日');
+  var d,key,dt,i;
+  for(d=new Date(y,0,2);d.getFullYear()===y;d=new Date(y,d.getMonth(),d.getDate()+1)){
+    key=pad(d.getMonth()+1)+'-'+pad(d.getDate());
+    if(h[key]||d.getDay()===0)continue;
+    var pv=new Date(y,d.getMonth(),d.getDate()-1),nx=new Date(y,d.getMonth(),d.getDate()+1);
+    if(h[pad(pv.getMonth()+1)+'-'+pad(pv.getDate())]&&h[pad(nx.getMonth()+1)+'-'+pad(nx.getDate())])h[key]='国民の休日';
+  }
+  Object.keys(h).slice().forEach(function(k2){
+    var m=Number(k2.slice(0,2)),dd=Number(k2.slice(3));
+    if(new Date(y,m-1,dd).getDay()===0){
+      var t=new Date(y,m-1,dd+1);
+      while(h[pad(t.getMonth()+1)+'-'+pad(t.getDate())])t=new Date(y,t.getMonth(),t.getDate()+1);
+      if(t.getFullYear()===y)h[pad(t.getMonth()+1)+'-'+pad(t.getDate())]='振替休日';
+    }
+  });
+  return HC[y]=h;
+}
+function hn(ds){return holidays(Number(ds.slice(0,4)))[ds.slice(5)]||''}
+function isRed(ds){return new Date(ds+'T00:00:00').getDay()===0||!!hn(ds)}
+function dow(d){return '日月火水木金土'[new Date(d+'T00:00:00').getDay()]}
+function byMonth(){return E.filter(function(e){return e.date.slice(0,7)===S.ym})}
+
+function summary(a,label){
+  var t=sum(a,'amount'),dm=group(a,function(e){return e.date}),dk=Object.keys(dm),w=dk.filter(function(k){return dm[k]>0}).length;
+  return '<div class="card"><div class="sub" style="text-align:center">'+label+'</div><div class="big '+cls(t)+'">'+yen(t)+'</div><div class="stat"><div><div class="sub">投資</div><b>'+sum(a,'inv').toLocaleString()+'</b></div><div><div class="sub">回収</div><b>'+sum(a,'rec').toLocaleString()+'</b></div><div><div class="sub">勝ちの日/<wbr>行った日</div><b>'+w+'/'+dk.length+'</b></div><div><div class="sub">勝率</div><b>'+(dk.length?Math.round(w/dk.length*100):0)+'%</b></div></div></div>';
+}
+function rowHtml(e,date){
+  return '<div class="row"><div class="l"><b>'+(date?'<span class="'+(isRed(e.date)?'hd':'')+'">'+e.date.slice(5).replace('-','/')+'('+dow(e.date)+')</span> ':'')+esc(e.store||'(店舗名なし)')+'</b><small>'+(e.kind==='other'?'その他'+(e.rate?' '+esc(e.rate):''):(esc(e.rate)||(e.kind==='slot'?'スロット':'パチンコ')))+' ・ 投資'+e.inv.toLocaleString()+' / 回収'+e.rec.toLocaleString()+(e.memo?' ・ '+esc(e.memo):'')+'</small></div><div class="r"><b class="'+cls(e.amount)+'">'+yen(e.amount)+'</b><div class="act"><button data-edit="'+e.id+'">編集</button><button data-del="'+e.id+'"'+(String(S.delArm)===String(e.id)?' style="color:var(--mi);font-weight:700"':'')+'>'+(String(S.delArm)===String(e.id)?'本当に削除':'削除')+'</button></div></div></div>';
+}
+function wr(list){
+  var dm=group(list,function(e){return e.date}),ks=Object.keys(dm),w=ks.filter(function(k){return dm[k]>0}).length;
+  return ks.length?Math.round(w/ks.length*100)+'% ('+w+'/'+ks.length+'日)':'';
+}
+function monthTotal(a){
+  var t=sum(a,'amount');
+  return '<div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px"><span class="sub" style="font-size:16px">月計</span><b class="'+cls(t)+'" style="font-size:26px">'+yen(t)+'</b></div>';
+}
+function breakdown(a,title,fn){
+  var m=group(a,fn),k=Object.keys(m).sort(function(x,y){return m[y]-m[x]}),ls={};
+  a.forEach(function(e){var kk=fn(e);(ls[kk]=ls[kk]||[]).push(e)});
+  if(!k.length)return '';
+  return '<div class="card"><h2>'+title+'</h2>'+k.map(function(x){return '<div class="row"><div class="l">'+esc(x)+'</div><div class="r '+cls(m[x])+'"><b class="am">'+yen(m[x])+'</b><small class="w">'+wr(ls[x])+'</small></div></div>'}).join('')+'</div>';
+}
+function ymLabel(){var p=S.ym.split('-');return p[0]+'年'+Number(p[1])+'月'}
+function closeForm(){S.fmsg='';if(S.edit)S.f=blank();S.edit=null;S.form=false}
+function yearList(){
+  var ys={},c=new Date().getFullYear();ys[c]=1;ys[c+1]=1;ys[S.y]=1;ys[S.ym.slice(0,4)]=1;
+  E.forEach(function(e){ys[e.date.slice(0,4)]=1});
+  var a=Object.keys(ys).map(Number),mn=Math.min(Math.min.apply(null,a),c-5),mx=Math.max.apply(null,a),l=[];
+  for(var y=mn;y<=mx;y++)l.push(y);return l;
+}
+function opts(list,cur){return list.map(function(v){return '<option value="'+v+'"'+(String(v)===String(cur)?' selected':'')+'>'+v+'</option>'}).join('')}
+function calAmt(v){
+  var a=Math.abs(v),sg=v<0?'−':'',t=a>=100000?sg+(Math.round(a/1000)/10)+'万':sg+a.toLocaleString(),em=0;
+  t.split('').forEach(function(ch){em+=/\d/.test(ch)?.58:(ch===','||ch==='.')?.3:ch==='万'?1.05:.62});
+  return '<b class="'+cls(v)+'" style="font-size:min(14px,'+(94/em).toFixed(1)+'cqw)">'+t+'</b>';
+}
+function recRow(e){
+  return '<button class="row rl" data-goday="'+e.date+'" style="padding:7px 0"><div class="l"><b class="'+(isRed(e.date)?'hd':'')+'">'+e.date.slice(0,4)+'/'+Number(e.date.slice(5,7))+'/'+Number(e.date.slice(8))+'('+dow(e.date)+')</b> '+esc(e.store||'(店舗名なし)')+'<small>投資'+e.inv.toLocaleString()+' / 回収'+e.rec.toLocaleString()+(e.memo?' ・ '+esc(e.memo):'')+'</small></div><div class="r"><b class="'+cls(e.amount)+'">'+yen(e.amount)+'</b> <span class="sub">›</span></div></button>';
+}
+function dayList(a){
+  if(!a.length)return '<div class="empty">この月の記録はありません</div>';
+  var m={};a.forEach(function(e){var o=m[e.date]||(m[e.date]={t:0,i:0,r:0,n:0});o.t+=e.amount;o.i+=e.inv;o.r+=e.rec;o.n++});
+  return Object.keys(m).sort().reverse().map(function(d){var o=m[d];return '<button class="row rl" data-goday="'+d+'"><div class="l"><b class="'+(isRed(d)?'hd':'')+'">'+Number(d.slice(5,7))+'/'+Number(d.slice(8))+'('+dow(d)+')</b><small>'+o.n+'件 ・ 投資'+o.i.toLocaleString()+' / 回収'+o.r.toLocaleString()+'</small></div><div class="r"><b class="'+cls(o.t)+'">'+yen(o.t)+'</b> <span class="sub">›</span></div></button>'}).join('');
+}
+function nav(label,id){
+  var c;
+  if(id==='mo'){var p=S.ym.split('-');c='<div class="sel"><select id="sel-y">'+opts(yearList(),p[0])+'</select>年<select id="sel-m">'+opts([1,2,3,4,5,6,7,8,9,10,11,12],Number(p[1]))+'</select>月</div>'}
+  else c='<div class="sel"><select id="sel-yy">'+opts(yearList(),S.y)+'</select>年</div>';
+  return '<div class="nav"><button data-nav="-1" data-for="'+id+'">‹</button>'+c+'<button data-nav="1" data-for="'+id+'">›</button><button data-today="'+id+'" class="tdy">'+(id==='mo'?'今日':'今年')+'</button></div>';
+}
+function totals(y,showY){
+  var all=sum(E,'amount'),yr=sum(E.filter(function(e){return e.date.slice(0,4)===y}),'amount');
+  return '<div class="card"><div class="stat">'+(showY?'<div><div class="sub">'+y+'年計</div><b class="'+cls(yr)+'" style="font-size:20px">'+yen(yr)+'</b></div>':'')+'<div><div class="sub">生涯累計</div><b class="'+cls(all)+'" style="font-size:20px">'+yen(all)+'</b></div></div></div>';
+}
+function viewCal(){
+  var a=byMonth(),p=S.ym.split('-'),Y=Number(p[0]),M=Number(p[1]);
+  var first=new Date(Y,M-1,1).getDay(),n=new Date(Y,M,0).getDate(),dm={};
+  a.forEach(function(e){dm[e.date]=(dm[e.date]||0)+e.amount});
+  var h=nav(ymLabel(),'mo')+monthTotal(a);
+  h+='<div class="card" style="padding:8px"><div class="cal">'+'日月火水木金土'.split('').map(function(c,i){return '<div class="h'+(i===0?' r':'')+'">'+c+'</div>'}).join('');
+  for(var i=0;i<first;i++)h+='<div class="d e"></div>';
+  for(var d=1;d<=n;d++){
+    var ds=S.ym+'-'+pad(d),v=dm[ds],has=v!==undefined;
+    h+='<button class="d'+(isRed(ds)?' r':'')+(has?(v>0?' p':v<0?' m':''):'')+(ds===today()?' t':'')+(ds===S.sel?' s':'')+'" data-day="'+ds+'"><i>'+d+'</i>'+(has?calAmt(v):'<b></b>')+'</button>';
+  }
+  h+='</div></div>';
+  if(S.sel&&S.sel.slice(0,7)===S.ym){
+    var de=E.filter(function(e){return e.date===S.sel}),dt=sum(de,'amount'),f=S.f;
+    h+='<div class="card" id="daycard"><div class="dh"><h2>'+Number(S.sel.slice(5,7))+'月'+Number(S.sel.slice(8))+'日('+dow(S.sel)+')'+(hn(S.sel)?' <span class="hd">'+hn(S.sel)+'</span>':'')+' の記録'+(de.length?' <span class="'+cls(dt)+'">'+yen(dt)+'</span>':'')+'</h2>'+(S.form?'':'<button id="open-form">＋ 入力</button>')+'</div>';
+    h+=de.length?de.map(function(e){return rowHtml(e,false)}).join(''):'<div class="empty">この日の記録はありません</div>';
+    h+='</div>';
+    if(S.form){h+='<div class="card"><h2>'+(S.edit?'記録を編集':'この日の収支を入力')+'</h2>';
+    if(S.edit)h+='<label>日付</label><input type="date" id="f-date" value="'+esc(f.date||S.sel)+'">';
+    h+='<label>店舗</label><input type="text" id="f-store" list="stl" placeholder="店名(空でもOK)" value="'+esc(f.store)+'"><datalist id="stl">'+stores().map(function(s){return '<option value="'+esc(s)+'">'}).join('')+'</datalist>';
+    h+='<label>機種</label><div class="seg"><button data-kind="slot" class="k-slot '+(f.kind==='slot'?'on':'')+'">スロット</button><button data-kind="pachi" class="k-pachi '+(f.kind==='pachi'?'on':'')+'">パチンコ</button><button data-kind="other" class="k-other '+(f.kind==='other'?'on':'')+'" style="flex:.85 1 0;font-size:15px">その他</button></div>';
+    var rl=RATES[f.kind].slice();if(f.rate&&rl.indexOf(f.rate)<0)rl.push(f.rate);
+    h+='<label>レート'+(f.kind==='other'?'(任意)':'')+'</label><div class="seg g3">'+rl.map(function(r){return '<button data-rate="'+esc(r)+'" class="k-'+f.kind+' '+(f.rate===r?'on':'')+'">'+esc(r)+'</button>'}).join('')+'</div><div class="seg" style="margin-top:8px"><button id="rate-open" style="flex:0 0 88px;font-size:15px">＋追加</button><button id="rate-del" style="flex:0 0 88px;font-size:15px"'+(X[f.kind].indexOf(f.rate)<0?' disabled':'')+'>削除</button></div>';
+    if(S.addRate)h+='<div class="two" style="margin-top:8px"><div style="flex:2"><input type="text" id="f-newrate" placeholder="例: 2 / 0.5 / 2スロ / メダル"></div><div style="flex:1"><button class="go" id="rate-add" style="margin-top:0;padding:13px">追加</button></div></div>';
+    if(X[f.kind].length)h+='<div class="sub" style="margin-top:6px">追加したレートを選んで「削除」で消せます</div>';
+    h+='<div class="two"><div><label>投資額(円)</label><input type="number" inputmode="numeric" min="0" id="f-inv" value="'+f.inv+'"></div><div><label>回収額(円)</label><input type="number" inputmode="numeric" min="0" id="f-rec" value="'+f.rec+'"></div></div>';
+    h+='<div class="pv">収支 <span id="pv"></span></div>';
+    h+='<label>メモ(任意)</label><input type="text" id="f-memo" value="'+esc(f.memo)+'">';
+    h+=(S.fmsg?'<div style="color:var(--mi);font-weight:700;margin-top:8px">'+esc(S.fmsg)+'</div>':'')+'<button class="go" id="add">'+(S.edit?'更新する':'記録する')+'</button><button class="go" id="cancel" style="background:var(--sub)">'+(S.edit?'キャンセル':'閉じる')+'</button></div>';}
+  }else h+='<div class="empty">カレンダーの日付をタップして入力</div>';
+  return h;
+}
+function viewMo(){
+  var a=byMonth().sort(function(x,y){return x.date<y.date?1:x.date>y.date?-1:y.id-x.id});
+  return nav(ymLabel(),'mo')+summary(a,'月計')+monthChart(a)+'<div class="card"><h2>日別の収支</h2><div class="sub" style="margin-bottom:4px">日付をタップすると、その日の明細を表示します</div>'+dayList(a)+'</div>'+rateBreakdown(a)+breakdown(a,'店舗別',function(e){return e.store||'店舗名なし'});
+}
+function viewYr(){
+  var a=E.filter(function(e){return e.date.slice(0,4)===S.y});
+  var h=nav(S.y+'年','yr')+summary(a,'年計'),m=group(a,function(e){return e.date.slice(5,7)});
+  h+=yearChart(a);h+='<div class="card"><h2>月別</h2><div class="sub" style="margin-bottom:4px">月をタップすると、その月の月計を表示します</div>';
+  for(var i=1;i<=12;i++){var k=pad(i),has=a.some(function(e){return e.date.slice(5,7)===k}),ml=a.filter(function(e){return e.date.slice(5,7)===k});
+    h+='<button class="row rl" data-gomonth="'+S.y+'-'+k+'"><div class="l">'+i+'月</div><div class="r '+(has?cls(m[k]):'')+'"><b class="am">'+(has?yen(m[k]):'—')+'</b><small class="w">'+(has?wr(ml):'')+'</small> <span class="sub">›</span></div></button>';}
+  return h+'</div>'+rateBreakdown(a)+breakdown(a,'店舗別',function(e){return e.store||'店舗名なし'});
+}
+function bkBanner(inData){
+  if(!E.length||(S.hideBk&&!inData))return '';
+  var days=ST.last?Math.floor((new Date(today()+'T00:00:00')-new Date(ST.last+'T00:00:00'))/86400000):null;
+  if(days!==null&&days<7)return '';
+  return '<div class="card" style="border-color:var(--ac)"><div style="font-weight:700">'+(days===null?'まだバックアップ(書き出し)をしていません':'最後の書き出しから'+days+'日たっています')+'</div><div class="sub">端末を変えたりブラウザを消すと記録が消えます。</div>'+(inData?'':'<div class="seg" style="margin-top:8px"><button id="bk-go" class="on">書き出しへ</button><button id="bk-later">あとで</button></div>')+'</div>';
+}
+function limitCard(a){
+  if(S.limEdit)return '<div class="card"><label style="margin-top:0">月の負け上限(円・空で解除)</label><input type="number" inputmode="numeric" min="0" id="f-limit" value="'+(ST.limit||'')+'"><div class="seg" style="margin-top:8px"><button id="lim-save" class="on">保存</button><button id="lim-cancel">キャンセル</button></div></div>';
+  if(!ST.limit)return '<div class="dh" style="margin:-4px 2px 10px"><span class="sub">月の負け上限: 未設定</span><button id="lim-open">設定</button></div>';
+  var loss=Math.max(0,-sum(a,'amount')),pct=Math.min(100,Math.round(loss/ST.limit*100)),left=ST.limit-loss,col=loss>=ST.limit?'var(--mi)':pct>=80?'#d97706':'var(--pl)';
+  return '<div class="card"><div class="dh" style="margin-bottom:4px"><h2>月の負け上限</h2><button id="lim-open">変更</button></div><div class="bar"><i style="width:'+pct+'%;background:'+col+'"></i></div><div class="stat"><div><div class="sub">上限</div><b>'+ST.limit.toLocaleString()+'円</b></div><div><div class="sub">この月の負け</div><b class="'+(loss?'mi':'')+'">'+loss.toLocaleString()+'円</b></div><div><div class="sub">'+(left>=0?'残り':'超過')+'</div><b class="'+(left<0?'mi':'')+'">'+Math.abs(left).toLocaleString()+'円</b></div></div></div>';
+}
+function cumPoints(list){
+  var q=list.slice().sort(function(x,y){return x.date<y.date?-1:x.date>y.date?1:0}),pts=[],c=0;
+  q.forEach(function(e){c+=e.amount;var t=new Date(e.date+'T00:00:00').getTime();if(pts.length&&pts[pts.length-1].t===t)pts[pts.length-1].v=c;else pts.push({t:t,v:c})});
+  return pts;
+}
+function rateBreakdown(a){
+  var names={slot:'スロット',pachi:'パチンコ',other:'その他'},cols={slot:'var(--ac)',pachi:'#d97706',other:'#64748b'},h='',first=true;
+  KINDS.forEach(function(k){
+    var l=a.filter(function(e){return e.kind===k});if(!l.length)return;
+    var m=group(l,function(e){return e.rate||'レートなし'}),ks=Object.keys(m).sort(function(x,y){var p=RATES[k].indexOf(x),q=RATES[k].indexOf(y);if(p<0)p=999;if(q<0)q=999;return p-q||(m[y]-m[x])}),t=sum(l,'amount'),ls={};
+    l.forEach(function(e){var kk=e.rate||'レートなし';(ls[kk]=ls[kk]||[]).push(e)});
+    h+='<div class="row" style="'+(first?'border-top:0;':'border-top:2px solid var(--line);margin-top:6px;')+'font-weight:700"><div class="l"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+cols[k]+';margin-right:8px"></span>'+names[k]+'</div><div class="r '+cls(t)+'"><b class="am">'+yen(t)+'</b><small class="w">'+wr(l)+'</small> <span class="sub" style="visibility:hidden">›</span></div></div>'
+     +ks.map(function(x){var key=k+'|'+x,op=S.openRate===key;return '<button class="row rl" data-orate="'+esc(key)+'" style="padding-left:20px"><div class="l">'+esc(x)+'</div><div class="r '+cls(m[x])+'"><b class="am">'+yen(m[x])+'</b><small class="w">'+wr(ls[x])+'</small> <span class="sub">'+(op?'▾':'›')+'</span></div></button>'+(op?'<div style="padding:2px 0 8px 20px">'+ls[x].slice().sort(function(p,q){return p.date<q.date?1:p.date>q.date?-1:q.id-p.id}).map(recRow).join('')+'</div>':'')}).join('');
+    first=false;
+  });
+  return h?'<div class="card"><h2>レート別</h2>'+h+'</div>':'';
+}
+function ticks(mn,mx){
+  var rng=(mx-mn)||1,rough=rng/4,pw=Math.pow(10,Math.floor(Math.log(rough)/Math.LN10)),f=rough/pw,st=Math.max(1,(f<=1?1:f<=2?2:f<=5?5:10)*pw),lo=Math.floor(mn/st)*st,hi=Math.ceil(mx/st)*st,l=[];
+  if(hi===lo)hi=lo+st;
+  for(var v=lo;v<=hi+st/2;v+=st)l.push(Math.round(v));
+  return{lo:lo,hi:hi,list:l};
+}
+function tk(v){var a=Math.abs(v),g=v<0?'−':'';return a>=10000?g+(Math.round(a/1000)/10)+'万':g+a.toLocaleString()}
+function grid(tc,Y,W,L,R){
+  return tc.list.map(function(t){var y=Y(t).toFixed(1),z=t===0;
+    return '<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="'+(z?'var(--sub)':'var(--line)')+'" stroke-width="'+(z?1.5:1)+'"'+(z?' opacity=".7"':'')+'/><text x="'+(L-5)+'" y="'+(Number(y)+4)+'" text-anchor="end" font-size="12" fill="var(--sub)">'+tk(t)+'</text>';
+  }).join('');
+}
+function barChart(vals,labels){
+  var W=360,H=200,L=48,R=8,T=24,B=26,n=vals.length,mx=Math.max.apply(null,vals.concat([0])),mn=Math.min.apply(null,vals.concat([0])),tc=ticks(mn,mx),ph=H-T-B,bw=(W-L-R)/n;
+  function Y(v){return T+ph*(tc.hi-v)/(tc.hi-tc.lo)}
+  var h='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img">'+grid(tc,Y,W,L,R),y0=Y(0);
+  vals.forEach(function(v,i){
+    var y1=Y(v),x=L+i*bw+bw*.15;
+    if(v!==0)h+='<rect x="'+x.toFixed(1)+'" y="'+Math.min(y0,y1).toFixed(1)+'" width="'+(bw*.7).toFixed(1)+'" height="'+Math.max(Math.abs(y1-y0),1.5).toFixed(1)+'" rx="2" fill="var('+(v>0?'--pl':'--mi')+')"/>';
+    h+='<text x="'+(L+i*bw+bw/2).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="13" fill="var(--sub)">'+labels[i]+'</text>';
+  });
+  if(mx>0)h+='<text x="6" y="14" font-size="13" fill="var(--pl)">最高 '+sh(mx)+'</text>';
+  if(mn<0)h+='<text x="'+(W-R)+'" y="14" text-anchor="end" font-size="13" fill="var(--mi)">最低 '+sh(mn)+'</text>';
+  return h+'</svg>';
+}
+function lineChart(pts,t0,t1,l0,l1,lab,xl,dots){
+  var W=360,H=200,L=48,R=12,T=28,B=26,vs=pts.map(function(p){return p.v}).concat([0]),mx=Math.max.apply(null,vs),mn=Math.min.apply(null,vs),tc=ticks(mn,mx),ph=H-T-B,pw=W-L-R,tr=(t1-t0)||1;
+  function X(t){return L+pw*(t-t0)/tr}
+  function Y(v){return T+ph*(tc.hi-v)/(tc.hi-tc.lo)}
+  var lp=pts[pts.length-1],last=lp.v,col=last>=0?'--pl':'--mi';
+  var d=pts.map(function(p,i){return (i?'L':'M')+X(p.t).toFixed(1)+' '+Y(p.v).toFixed(1)}).join(' ');
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img">'+grid(tc,Y,W,L,R)
+   +(xl?xl.map(function(q){var x=X(q.t).toFixed(1);return '<line x1="'+x+'" x2="'+x+'" y1="'+T+'" y2="'+(H-B)+'" stroke="var(--line)" stroke-width="1"/>'}).join(''):'')
+   +'<path d="'+d+'" fill="none" stroke="var('+col+')" stroke-width="2.5" stroke-linejoin="round"/>'
+   +'<circle cx="'+X(lp.t).toFixed(1)+'" cy="'+Y(last).toFixed(1)+'" r="4.5" fill="var('+col+')"/>'
+   +'<text x="6" y="16" font-size="14" font-weight="700" fill="var('+col+')">'+lab+' '+sh(last)+'円</text>'
+   +(xl?(dots?pts.map(function(p){return '<circle cx="'+X(p.t).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="4" fill="var('+col+')"/>'}).join(''):'')+(xl.length<=12?xl:[xl[0],xl[xl.length-1]]).map(function(q){var x=Math.min(W-R-16,Math.max(L+16,X(q.t)));return '<text x="'+x.toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="13" fill="var(--sub)">'+q.s+'</text>'}).join(''):'<text x="'+L+'" y="'+(H-8)+'" font-size="13" fill="var(--sub)">'+l0+'</text><text x="'+(W-R)+'" y="'+(H-8)+'" text-anchor="end" font-size="13" fill="var(--sub)">'+l1+'</text>')+'</svg>';
+}
+function monthChart(a){
+  if(!a.length)return '';
+  var p=S.ym.split('-'),Y=Number(p[0]),M=Number(p[1]),ld=new Date(Y,M,0).getDate(),t0=new Date(Y,M-1,1).getTime(),t1=new Date(Y,M,0).getTime(),pts=[{t:t0,v:0}].concat(cumPoints(a)),xl=[];
+  [1,5,10,15,20,25,ld].forEach(function(d,i,ar){if(d<=ld&&ar.indexOf(d)===i)xl.push({t:new Date(Y,M-1,d).getTime(),s:d+'日'})});
+  return '<div class="card"><h2>この月の累計の推移</h2>'+lineChart(pts,t0,t1,'','','累計',xl)+'</div>';
+}
+function yearChart(a){
+  if(!a.length)return '';
+  var m=group(a,function(e){return e.date.slice(5,7)}),c=0,pts=[],xl=[],last=0,i;
+  a.forEach(function(e){last=Math.max(last,Number(e.date.slice(5,7)))});
+  for(i=1;i<=12;i++){xl.push({t:i,s:String(i)});if(i<=last){c+=m[pad(i)]||0;pts.push({t:i,v:c})}}
+  return '<div class="card"><h2>月ごとの累計の推移(月末時点)</h2>'+lineChart(pts,.6,12.4,'','','累計',xl,true)+'</div>';
+}
+function lifeChart(a){
+  var g2=group(a,function(e){return e.date.slice(0,4)}),ys=Object.keys(g2).sort(),c=0,pts=[],xl=[];
+  if(!ys.length)return '';
+  ys.forEach(function(y){c+=g2[y];pts.push({t:Number(y),v:c});xl.push({t:Number(y),s:y+'年'})});
+  return '<div class="card"><h2>年別の累計の推移</h2>'+lineChart(pts,pts[0].t-.4,pts[pts.length-1].t+.4,'','','累計',xl,true)+'</div>';
+}
+function viewAll(){
+  var a=E.slice(),h=summary(a,'生涯累計'),g2=group(a,function(e){return e.date.slice(0,4)}),cum=0;
+  var rows=Object.keys(g2).sort().map(function(y){cum+=g2[y];return{y:y,v:g2[y],c:cum}}).reverse();
+  h+=lifeChart(a);h+='<div class="card"><h2>年別</h2><div class="sub" style="margin-bottom:4px">年をタップすると、その年の年計を表示します</div>'+(rows.length?rows.map(function(r){return '<button class="row rl" data-goyear="'+r.y+'"><div class="l"><b>'+r.y+'年</b></div><div class="r"><b class="am '+cls(r.v)+'">'+yen(r.v)+'</b><small class="w">'+wr(a.filter(function(e){return e.date.slice(0,4)===r.y}))+'</small> <span class="sub">›</span><small>累計 <span class="'+cls(r.c)+'">'+yen(r.c)+'</span></small></div></button>'}).join(''):'<div class="empty">記録がありません</div>')+'</div>';
+  return h+rateBreakdown(a)+breakdown(a,'店舗別',function(e){return e.store||'店舗名なし'});
+}
+function viewAn(){
+  var t=[['mo','月計'],['yr','年計'],['all','生涯']],v=S.an==='yr'?viewYr():S.an==='all'?viewAll():viewMo();
+  return '<div class="seg" style="margin-bottom:12px">'+t.map(function(x){return '<button data-an="'+x[0]+'" class="'+((S.an||'mo')===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div>'+v;
+}
+function payload(){return JSON.stringify({app:'pachi-balance',version:1,exported:today(),rates:X,limit:ST.limit,entries:E})}
+function setMsg(t){S.msg=t;var m=document.getElementById('msg');if(m)m.textContent=t}
+function viewData(){
+  var h=bkBanner(true)+'<div class="card"><h2>書き出し(今の端末で)</h2><div class="sub">'+E.length+'件の記録をバックアップします。<br>最後の書き出し: '+(ST.last||'まだありません')+'</div>';
+  h+='<button class="go" id="exp-file">ファイルに保存</button><button class="go" id="exp-show" style="background:var(--sub)">テキストで表示してコピー</button>';
+  if(S.showExp)h+='<textarea id="exp-text" readonly>'+esc(payload())+'</textarea><div class="sub">全選択してコピーし、メモなどに貼り付けて保管してください。</div>';
+  h+='</div><div class="card"><h2>読み込み(新しい端末で)</h2><div class="sub">保存したファイルを選ぶか、コピーしたテキストを貼り付けてください。</div>';
+  h+='<label>ファイル</label><input type="file" id="imp-file" accept=".json,.txt,application/json,text/plain"><label>またはテキスト</label><textarea id="imp-text" placeholder="ここに貼り付け"></textarea>';
+  h+='<button class="go" id="imp-add">今の記録に追加して読み込む</button><button class="go" id="imp-rep" style="background:var(--mi)">全て置き換えて読み込む</button>';
+  h+='<div class="sub" id="msg" style="margin-top:8px">'+esc(S.msg||'')+'</div></div>';
+  return h;
+}
+function cleanEntry(e,i){
+  if(!e||typeof e!=='object'||!/^\d{4}-\d{2}-\d{2}$/.test(e.date||''))return null;
+  var inv,rec;
+  if(e.inv===undefined&&e.rec===undefined){var a=parseInt(e.amount,10)||0;inv=a<0?-a:0;rec=a>0?a:0}
+  else{inv=Math.abs(parseInt(e.inv,10)||0);rec=Math.abs(parseInt(e.rec,10)||0)}
+  var k=e.kind==='pachi'?'pachi':e.kind==='other'?'other':'slot';
+  return{id:Number(e.id)||Date.now()+i,date:e.date,store:String(e.store||'').slice(0,60),kind:k,rate:String((e.rate===undefined||e.rate===null)?DEF[k]:e.rate),inv:inv,rec:rec,amount:rec-inv,memo:String(e.memo||'').slice(0,100)};
+}
+function doImport(replace){
+  var txt=g('imp-text').trim();
+  if(!txt)return setMsg('ファイルを選ぶか、テキストを貼り付けてください');
+  var o;try{o=JSON.parse(txt)}catch(err){return setMsg('データの形式が正しくありません')}
+  var arr=Array.isArray(o)?o:(o&&o.entries);
+  if(!Array.isArray(arr))return setMsg('記録データが見つかりません');
+  var list=[],bad=0;arr.forEach(function(e,i){var c=cleanEntry(e,i);if(c)list.push(c);else bad++});
+  if(!list.length)return setMsg('読み込める記録がありませんでした');
+  list.forEach(function(c){if(c.rate&&RATES[c.kind].indexOf(c.rate)<0&&X[c.kind].indexOf(c.rate)<0)X[c.kind].push(c.rate)});
+  if(o&&o.rates)KINDS.forEach(function(k){if(Array.isArray(o.rates[k]))o.rates[k].forEach(function(r){r=String(r).slice(0,12);if(r&&RATES[k].indexOf(r)<0&&X[k].indexOf(r)<0)X[k].push(r)})});
+  syncRates();saveRates();
+  if(o&&Number(o.limit)>0){ST.limit=Number(o.limit);saveST()}
+  if(replace){if(!S.repArm){S.repArm=true;var rb=document.getElementById('imp-rep');if(rb)rb.textContent='もう一度押すと置き換えます';setMsg('今の記録'+E.length+'件を消して、'+list.length+'件に置き換えます。よければ、赤いボタンをもう一度押してください');clearTimeout(S.repT);S.repT=setTimeout(function(){S.repArm=false;var b2=document.getElementById('imp-rep');if(b2)b2.textContent='全て置き換えて読み込む'},12000);return}S.repArm=false;E=list;S.msg=list.length+'件に置き換えました'}
+  else{var ids={};E.forEach(function(e){ids[e.id]=1});var add=0;list.forEach(function(c){if(!ids[c.id]){ids[c.id]=1;E.push(c);add++}});S.msg=add+'件を追加しました(重複'+(list.length-add)+'件は除外)'}
+  if(bad)S.msg+=' / 形式不正'+bad+'件は無視';
+  save();render();
+}
+async function expFile(){
+  try{
+    var dl=window.claude&&await claude.use('downloads');
+    if(!dl)return setMsg('この画面ではファイル保存が使えません。「テキストで表示」を使ってください');
+    await dl.save({filename:'syushi-'+today().replace(/-/g,'')+'.json',data:payload()});
+    ST.last=today();saveST();setMsg('保存しました');
+  }catch(err){setMsg(err&&err.code==='declined'?'キャンセルしました':'保存できませんでした。「テキストで表示」を使ってください')}
+}
+document.addEventListener('change',function(e){
+  var id=e.target.id;S.openRate=null;
+  if(id==='sel-y'||id==='sel-m'){S.ym=g('sel-y')+'-'+pad(Number(g('sel-m')));S.sel=null;closeForm();return render()}
+  if(id==='sel-yy'){S.y=g('sel-yy');return render()}
+  if(id!=='imp-file')return;var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();r.onload=function(){document.getElementById('imp-text').value=r.result;setMsg(f.name+' を読み込みました。下のボタンで取り込みを実行してください')};r.readAsText(f);
+});
+function render(){
+  document.getElementById('fsz').innerHTML='文字'+[['s','小'],['m','中'],['l','大']].map(function(x){return '<button data-fs="'+x[0]+'" class="'+(ST.fs===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('');
+  document.getElementById('tabs').innerHTML=[['cal','カレンダー'],['an','収支分析'],['dt','データ']].map(function(x){return '<button data-t="'+x[0]+'" class="'+(S.tab===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('');
+  document.getElementById('view').innerHTML=S.tab==='cal'?viewCal():S.tab==='an'?viewAn():viewData();
+  pv();
+}
+function g(i){var x=document.getElementById(i);return x?x.value:''}
+function readForm(){if(!document.getElementById('f-store'))return;S.f.store=g('f-store');S.f.inv=g('f-inv');S.f.rec=g('f-rec');S.f.memo=g('f-memo');if(document.getElementById('f-date'))S.f.date=g('f-date')}
+function pv(){var x=document.getElementById('pv');if(!x)return;var v=(parseInt(g('f-rec'),10)||0)-(parseInt(g('f-inv'),10)||0);x.textContent=yen(v);x.className=cls(v)}
+document.addEventListener('input',function(e){if(e.target.id==='f-inv'||e.target.id==='f-rec')pv()});
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest('button');if(!b)return;var d=b.dataset;if(!d.del)S.delArm=null;if(!d.orate)S.openRate=null;
+  if(d.t){readForm();S.tab=d.t;return render()}
+  if(d.an){S.an=d.an;return render()}
+  if(d.fs){ST.fs=d.fs;saveST();applyFs();return render()}
+  if(b.id==='bk-go'){S.tab='dt';return render()}
+  if(b.id==='bk-later'){S.hideBk=true;return render()}
+  if(b.id==='lim-open'){S.limEdit=true;render();var li=document.getElementById('f-limit');if(li)li.focus();return}
+  if(b.id==='lim-save'){ST.limit=Math.max(0,parseInt(g('f-limit'),10)||0);saveST();S.limEdit=false;return render()}
+  if(b.id==='lim-cancel'){S.limEdit=false;return render()}
+  if(b.id==='open-form'){S.form=true;render();var fs=document.getElementById('f-store');if(fs)fs.scrollIntoView({block:'center'});return}
+  if(d.day){readForm();closeForm();S.sel=d.day;return render()}
+  if(d.kind){readForm();S.f.kind=d.kind;S.f.rate=DEF[d.kind];return render()}
+  if(b.id==='rate-open'){readForm();S.addRate=!S.addRate;render();var ni=document.getElementById('f-newrate');if(ni)ni.focus();return}
+  if(b.id==='rate-add'){
+    readForm();var nm=g('f-newrate').trim().slice(0,12);if(!nm)return;
+    if(/^[0-9.]+$/.test(nm)&&S.f.kind!=='other')nm+=S.f.kind==='slot'?'スロ':'パチ';
+    if(RATES[S.f.kind].indexOf(nm)<0){X[S.f.kind].push(nm);syncRates();saveRates()}
+    S.f.rate=nm;S.addRate=false;return render();
+  }
+  if(b.id==='rate-del'){readForm();var k2=S.f.kind,r2=S.f.rate;if(X[k2].indexOf(r2)<0)return;X[k2]=X[k2].filter(function(r){return r!==r2});syncRates();saveRates();S.f.rate=DEF[k2];return render()}
+  if(d.delrate){readForm();var kk=S.f.kind;X[kk]=X[kk].filter(function(r){return r!==d.delrate});syncRates();saveRates();if(S.f.rate===d.delrate)S.f.rate=DEF[kk];return render()}
+  if(d.rate){readForm();S.f.rate=(S.f.kind==='other'&&S.f.rate===d.rate)?'':d.rate;return render()}
+  if(d.orate){S.openRate=(S.openRate===d.orate)?null:d.orate;return render()}
+  if(d.today){if(d.today==='mo'){S.ym=today().slice(0,7);S.sel=today();closeForm()}else S.y=today().slice(0,4);return render()}
+  if(d.goday){readForm();closeForm();S.tab='cal';S.ym=d.goday.slice(0,7);S.sel=d.goday;render();var dc=document.getElementById('daycard');if(dc)dc.scrollIntoView({block:'center'});return}
+  if(d.gomonth){S.tab='an';S.an='mo';S.ym=d.gomonth;S.sel=null;closeForm();render();window.scrollTo(0,0);return}
+  if(d.goyear){S.tab='an';S.an='yr';S.y=d.goyear;render();window.scrollTo(0,0);return}
+  if(d.nav){
+    var n=Number(d.nav);
+    if(d['for']==='mo'){var p=S.ym.split('-'),dt=new Date(Number(p[0]),Number(p[1])-1+n,1);S.ym=dt.getFullYear()+'-'+pad(dt.getMonth()+1);S.sel=null;closeForm()}
+    else S.y=String(Number(S.y)+n);
+    return render();
+  }
+  if(d.del){if(String(S.delArm)===d.del){S.delArm=null;E=E.filter(function(e){return String(e.id)!==d.del});closeForm();save();render()}else{S.delArm=d.del;render()}return}
+  if(d.edit){
+    var e=E.filter(function(x){return String(x.id)===d.edit})[0];if(!e)return;
+    S.edit=e.id;S.form=true;S.f={date:e.date,store:e.store,kind:e.kind,rate:e.rate,inv:e.inv,rec:e.rec,memo:e.memo||''};
+    S.ym=e.date.slice(0,7);S.sel=e.date;S.tab='cal';render();
+    var f=document.getElementById('f-store');if(f)f.scrollIntoView({block:'center'});return;
+  }
+  if(b.id==='exp-file')return expFile();
+  if(b.id==='exp-show'){S.showExp=true;ST.last=today();saveST();render();var t=document.getElementById('exp-text');if(t){t.focus();t.select();try{navigator.clipboard.writeText(t.value).then(function(){setMsg('コピーしました')},function(){})}catch(err){}}return}
+  if(b.id==='imp-add')return doImport(false);
+  if(b.id==='imp-rep')return doImport(true);
+  if(b.id==='cancel'){closeForm();return render()}
+  if(b.id==='add'){
+    readForm();var f=S.f,inv=Math.abs(parseInt(f.inv,10)||0),rec=Math.abs(parseInt(f.rec,10)||0);
+    if(!inv&&!rec){S.fmsg='投資額か回収額を入力してください';return render()}
+    var r={id:S.edit||Date.now(),date:(S.edit&&/^\d{4}-\d{2}-\d{2}$/.test(f.date||''))?f.date:S.sel,store:f.store.trim(),kind:f.kind,rate:f.rate,inv:inv,rec:rec,amount:rec-inv,memo:(f.memo||'').trim()};
+    if(S.edit){E=E.map(function(x){return x.id===S.edit?r:x})}else E.push(r);
+    save();S.fmsg='';S.edit=null;S.form=false;S.ym=r.date.slice(0,7);S.sel=r.date;S.f={store:r.store,kind:r.kind,rate:r.rate,inv:'',rec:'',memo:''};render();
+  }
+});
+render();
+</script>
+</body>
+</html>
