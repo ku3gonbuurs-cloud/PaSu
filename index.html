@@ -3,13 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="PaSu">
 <title>PaSu収支帳</title>
 <style>
 :root{--bg:#f5f6f8;--card:#fff;--tx:#1d2330;--sub:#6b7385;--line:#e3e6ec;--ac:#2f5bd8;--pl:#0f8a4f;--mi:#d23b3b;--plb:#e4f5ec;--mib:#fbe7e7;--hd:#8e2fc4;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171d;--card:#1e232c;--tx:#e8ebf2;--sub:#98a1b3;--line:#2d3340;--ac:#6f93ff;--pl:#47c98a;--mi:#ff7b7b;--plb:#173a2a;--mib:#432326;--hd:#d39bff}}
 :root[data-theme="dark"]{--bg:#14171d;--card:#1e232c;--tx:#e8ebf2;--sub:#98a1b3;--line:#2d3340;--ac:#6f93ff;--pl:#47c98a;--mi:#ff7b7b;--plb:#173a2a;--mib:#432326;--hd:#d39bff}
-*{box-sizing:border-box}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+button,select,input{touch-action:manipulation}
+input[type=date]{min-height:50px;-webkit-appearance:none;appearance:none}
+.tdy2{border:1px solid var(--line);background:var(--bg);color:var(--ac);border-radius:8px;padding:6px 10px;font-size:14px;font-family:inherit}
+.nav .sel{min-width:0;flex:1 1 auto;justify-content:center}
+.nav select{min-width:0}
+@media (max-width:430px){
+  main{padding:10px}
+  .nav button{padding:8px 10px}
+  .nav .sel{gap:2px;font-size:16px}
+  .nav select{font-size:16px;padding:6px 0}
+  .nav .tdy{font-size:14px;padding:8px 8px}
+  .row .r .am{min-width:80px;font-size:16px}
+  .row .r small.w{width:84px;margin-left:4px;font-size:11.5px}
+  .row .l{font-size:15px}
+  .tabs button{font-size:14px}
+}
 button{font-family:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--tx);font:17px/1.5 -apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
@@ -58,6 +80,9 @@ select{padding:8px 4px;border:1px solid var(--line);border-radius:10px;backgroun
 .sugg:empty{display:none}
 .sg{border:0;border-top:1px solid var(--line);background:var(--card);color:var(--tx);padding:12px;font-size:17px;text-align:left;font-family:inherit}
 .sg:first-child{border-top:0}
+.toast{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;background:#2b3243;color:#fff;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.35);max-width:536px;margin:0 auto;font-size:15px}
+.toast:empty{display:none}
+.toast button{background:#fff;color:#1d2330;border:0;border-radius:8px;padding:9px 14px;font-size:16px;font-weight:700;white-space:nowrap;font-family:inherit}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .chip{border:1px solid var(--line);background:var(--bg);color:var(--tx);border-radius:18px;padding:8px 12px;font-size:15px;font-family:inherit}
 .chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
@@ -95,14 +120,15 @@ select{padding:8px 4px;border:1px solid var(--line);border-radius:10px;backgroun
 <div class="tabs" id="tabs"></div>
 <div id="view"></div>
 </main>
+<div class="toast" id="toast"></div>
 <script>
 var KEY='pachi-v1',RKEY='pachi-rates-v1',BASE={slot:['5スロ','10スロ','20スロ','ジャグラー'],pachi:['0.5パチ','1パチ','4パチ'],other:[]},DEF={slot:'10スロ',pachi:'4パチ',other:''},X={slot:[],pachi:[],other:[]},KINDS=['slot','pachi','other'],RATES={},E=[];
 try{var xr=JSON.parse(localStorage.getItem(RKEY)||'{}');KINDS.forEach(function(k){if(Array.isArray(xr[k]))X[k]=xr[k].map(String).slice(0,30).filter(function(r){return BASE[k].indexOf(r)<0})})}catch(e){}
 function syncRates(){KINDS.forEach(function(k){var l=BASE[k].slice();X[k].forEach(function(r){if(l.indexOf(r)<0)l.push(r)});l.sort(function(a,b){var x=parseFloat(a),y=parseFloat(b);if(isNaN(x)&&isNaN(y))return 0;if(isNaN(x))return 1;if(isNaN(y))return -1;return x-y});RATES[k]=l})}
 syncRates();
 function saveRates(){try{localStorage.setItem(RKEY,JSON.stringify(X))}catch(e){}}
-var ST={fs:'s',limit:0,last:''};
-try{var sj=JSON.parse(localStorage.getItem('pachi-set-v1')||'{}');if(sj.fs)ST.fs=sj.fs;ST.limit=Number(sj.limit)||0;ST.last=sj.last||''}catch(e){}
+var ST={fs:'s',limit:0,last:'',cash:null,cashDate:''};
+try{var sj=JSON.parse(localStorage.getItem('pachi-set-v1')||'{}');if(sj.fs)ST.fs=sj.fs;ST.limit=Number(sj.limit)||0;ST.last=sj.last||'';ST.cash=(sj.cash===undefined||sj.cash===null)?null:Number(sj.cash);ST.cashDate=sj.cashDate||''}catch(e){}
 function saveST(){try{localStorage.setItem('pachi-set-v1',JSON.stringify(ST))}catch(e){}}
 function applyFs(){document.documentElement.setAttribute('data-fs',ST.fs)}
 applyFs();
@@ -180,17 +206,29 @@ function wr(list){
   var dm=group(list,function(e){return e.date}),ks=Object.keys(dm),w=ks.filter(function(k){return dm[k]>0}).length;
   return ks.length?Math.round(w/ks.length*100)+'% ('+w+'/'+ks.length+'日)':'';
 }
+function cashNow(){
+  if(ST.cash===null||ST.cash===undefined)return null;
+  return ST.cash+sum(E.filter(function(e){return e.c}),'amount');
+}
 function monthTotal(a){
-  var t=sum(a,'amount');
-  return '<div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px"><span class="sub" style="font-size:16px">月計</span><b class="'+cls(t)+'" style="font-size:26px">'+yen(t)+'</b></div>';
+  var t=sum(a,'amount'),cn=cashNow();
+  var h='<div class="card" style="padding:10px 14px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="sub" style="font-size:16px">月計</span><b class="'+cls(t)+'" style="font-size:26px">'+yen(t)+'</b></div>';
+  if(S.cashEdit)h+='<div style="border-top:1px solid var(--line);margin-top:8px;padding-top:8px"><label style="margin-top:0">現在の現金(円・空で解除)</label><input type="number" inputmode="numeric" id="f-cash" value="'+(cn===null?'':cn)+'"><div class="seg" style="margin-top:8px"><button id="cash-save" class="on">保存</button><button id="cash-cancel">キャンセル</button></div><div class="sub" style="margin-top:6px">これから記録する収支は、現金に自動で足し引きされます</div></div>';
+  else h+='<div style="border-top:1px solid var(--line);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="sub" style="font-size:16px">現在の現金'+(cn!==null&&ST.cashDate?'<small style="display:block;font-size:12px">'+ST.cashDate.slice(0,4)+'/'+Number(ST.cashDate.slice(5,7))+'/'+Number(ST.cashDate.slice(8))+' に入力</small>':'')+'</span><span style="white-space:nowrap"><b style="font-size:22px">'+(cn===null?'未設定':(cn<0?'−':'')+Math.abs(cn).toLocaleString()+'円')+'</b> <button id="cash-open" class="tdy2">'+(cn===null?'設定':'変更')+'</button></span></div>';
+  return h+'</div>';
 }
 function breakdown(a,title,fn){
   var m=group(a,fn),k=Object.keys(m).sort(function(x,y){return m[y]-m[x]}),ls={};
   a.forEach(function(e){var kk=fn(e);(ls[kk]=ls[kk]||[]).push(e)});
   if(!k.length)return '';
-  return '<div class="card"><h2>'+title+'</h2>'+k.map(function(x){return '<div class="row"><div class="l">'+esc(x)+'</div><div class="r '+cls(m[x])+'"><b class="am">'+yen(m[x])+'</b><small class="w">'+wr(ls[x])+'</small></div></div>'}).join('')+'</div>';
+  return '<div class="card"><h2>'+title+'</h2>'+k.map(function(x){var key='store|'+x,op=S.openRate===key;return '<button class="row rl" data-orate="'+esc(key)+'"><div class="l">'+esc(x)+'</div><div class="r '+cls(m[x])+'"><b class="am">'+yen(m[x])+'</b><small class="w">'+wr(ls[x])+'</small> <span class="sub">'+(op?'▾':'›')+'</span></div></button>'+(op?'<div style="padding:2px 0 8px 8px">'+ls[x].slice().sort(function(p,q){return p.date<q.date?1:p.date>q.date?-1:q.id-p.id}).map(recRow).join('')+'</div>':'')}).join('')+'</div>';
 }
 function ymLabel(){var p=S.ym.split('-');return p[0]+'年'+Number(p[1])+'月'}
+function toast(){
+  var t=document.getElementById('toast');if(!t)return;
+  var u=S.undo;
+  t.innerHTML=u?'<span>削除しました('+Number(u.date.slice(5,7))+'/'+Number(u.date.slice(8))+' '+esc(u.store||'店舗名なし')+' '+yen(u.amount)+')</span><button id="undo">元に戻す</button>':'';
+}
 function closeForm(){S.fmsg='';if(S.edit)S.f=blank();S.edit=null;S.form=false}
 function yearList(){
   var ys={},c=new Date().getFullYear();ys[c]=1;ys[c+1]=1;ys[S.y]=1;ys[S.ym.slice(0,4)]=1;
@@ -379,7 +417,7 @@ function viewAn(){
   var t=[['mo','月計'],['yr','年計'],['all','生涯']],v=S.an==='yr'?viewYr():S.an==='all'?viewAll():viewMo();
   return '<div class="seg" style="margin-bottom:12px">'+t.map(function(x){return '<button data-an="'+x[0]+'" class="'+((S.an||'mo')===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div>'+v;
 }
-function payload(){return JSON.stringify({app:'pachi-balance',version:1,exported:today(),rates:X,limit:ST.limit,entries:E})}
+function payload(){return JSON.stringify({app:'pachi-balance',version:1,exported:today(),rates:X,limit:ST.limit,cash:ST.cash,cashDate:ST.cashDate,entries:E})}
 function setMsg(t){S.msg=t;var m=document.getElementById('msg');if(m)m.textContent=t}
 function viewData(){
   var h=bkBanner(true)+'<div class="card"><h2>書き出し(今の端末で)</h2><div class="sub">'+E.length+'件の記録をバックアップします。<br>最後の書き出し: '+(ST.last||'まだありません')+'</div>';
@@ -397,7 +435,7 @@ function cleanEntry(e,i){
   if(e.inv===undefined&&e.rec===undefined){var a=parseInt(e.amount,10)||0;inv=a<0?-a:0;rec=a>0?a:0}
   else{inv=Math.abs(parseInt(e.inv,10)||0);rec=Math.abs(parseInt(e.rec,10)||0)}
   var k=e.kind==='pachi'?'pachi':e.kind==='other'?'other':'slot';
-  return{id:Number(e.id)||Date.now()+i,date:e.date,store:String(e.store||'').slice(0,60),kind:k,rate:String((e.rate===undefined||e.rate===null)?DEF[k]:e.rate),inv:inv,rec:rec,amount:rec-inv,memo:String(e.memo||'').slice(0,100)};
+  return{id:Number(e.id)||Date.now()+i,date:e.date,store:String(e.store||'').slice(0,60),kind:k,rate:String((e.rate===undefined||e.rate===null)?DEF[k]:e.rate),inv:inv,rec:rec,amount:rec-inv,memo:String(e.memo||'').slice(0,100),c:e.c?1:0};
 }
 function doImport(replace){
   var txt=g('imp-text').trim();
@@ -412,8 +450,9 @@ function doImport(replace){
   syncRates();saveRates();
   if(o&&Number(o.limit)>0){ST.limit=Number(o.limit);saveST()}
   if(replace){if(!S.repArm){S.repArm=true;var rb=document.getElementById('imp-rep');if(rb)rb.textContent='もう一度押すと置き換えます';setMsg('今の記録'+E.length+'件を消して、'+list.length+'件に置き換えます。よければ、赤いボタンをもう一度押してください');clearTimeout(S.repT);S.repT=setTimeout(function(){S.repArm=false;var b2=document.getElementById('imp-rep');if(b2)b2.textContent='全て置き換えて読み込む'},12000);return}S.repArm=false;E=list;S.msg=list.length+'件に置き換えました'}
-  else{var ids={};E.forEach(function(e){ids[e.id]=1});var add=0;list.forEach(function(c){if(!ids[c.id]){ids[c.id]=1;E.push(c);add++}});S.msg=add+'件を追加しました(重複'+(list.length-add)+'件は除外)'}
+  else{var ids={};E.forEach(function(e){ids[e.id]=1});var add=0;list.forEach(function(c){if(!ids[c.id]){ids[c.id]=1;c.c=0;E.push(c);add++}});S.msg=add+'件を追加しました(重複'+(list.length-add)+'件は除外)'}
   if(bad)S.msg+=' / 形式不正'+bad+'件は無視';
+  if(o&&typeof o.cash==='number'&&(replace||ST.cash===null)){ST.cash=o.cash;ST.cashDate=o.cashDate||'';saveST()}
   save();render();
 }
 function markSaved(t){ST.last=today();saveST();setMsg(t)}
@@ -457,7 +496,7 @@ function render(){
   document.getElementById('fsz').innerHTML='文字'+[['s','小'],['m','中'],['l','大']].map(function(x){return '<button data-fs="'+x[0]+'" class="'+(ST.fs===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('');
   document.getElementById('tabs').innerHTML=[['cal','カレンダー'],['an','収支分析'],['dt','データ']].map(function(x){return '<button data-t="'+x[0]+'" class="'+(S.tab===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('');
   document.getElementById('view').innerHTML=S.tab==='cal'?viewCal():S.tab==='an'?viewAn():viewData();
-  pv();
+  pv();toast();
 }
 function g(i){var x=document.getElementById(i);return x?x.value:''}
 function readForm(){if(!document.getElementById('f-store'))return;S.f.store=g('f-store');S.f.inv=g('f-inv');S.f.rec=g('f-rec');S.f.memo=g('f-memo');if(document.getElementById('f-date'))S.f.date=g('f-date')}
@@ -488,6 +527,10 @@ document.addEventListener('click',function(ev){
   if(b.id==='rate-del'){readForm();var k2=S.f.kind,r2=S.f.rate;if(X[k2].indexOf(r2)<0)return;X[k2]=X[k2].filter(function(r){return r!==r2});syncRates();saveRates();S.f.rate=DEF[k2];return render()}
   if(d.delrate){readForm();var kk=S.f.kind;X[kk]=X[kk].filter(function(r){return r!==d.delrate});syncRates();saveRates();if(S.f.rate===d.delrate)S.f.rate=DEF[kk];return render()}
   if(d.rate){readForm();S.f.rate=(S.f.kind==='other'&&S.f.rate===d.rate)?'':d.rate;return render()}
+  if(b.id==='undo'){if(S.undo){E.push(S.undo);S.sel=S.undo.date;S.ym=S.undo.date.slice(0,7);S.undo=null;clearTimeout(S.undoT);save()}return render()}
+  if(b.id==='cash-open'){S.cashEdit=true;render();var ci=document.getElementById('f-cash');if(ci)ci.focus();return}
+  if(b.id==='cash-cancel'){S.cashEdit=false;return render()}
+  if(b.id==='cash-save'){var cv=g('f-cash').trim();if(cv===''){ST.cash=null;ST.cashDate=''}else{var cn2=parseInt(cv,10);if(isNaN(cn2))return;ST.cash=cn2;ST.cashDate=today()}E.forEach(function(e){e.c=0});save();saveST();S.cashEdit=false;return render()}
   if(d.orate){S.openRate=(S.openRate===d.orate)?null:d.orate;return render()}
   if(d.sg!==undefined){var si=document.getElementById('f-store');if(si)si.value=d.sg;S.f.store=d.sg;var sg=document.getElementById('sugg');if(sg)sg.innerHTML='';return}
   if(d.store){readForm();S.f.store=(S.f.store===d.store)?'':d.store;return render()}
@@ -502,7 +545,7 @@ document.addEventListener('click',function(ev){
     else S.y=String(Number(S.y)+n);
     return render();
   }
-  if(d.del){if(String(S.delArm)===d.del){S.delArm=null;E=E.filter(function(e){return String(e.id)!==d.del});closeForm();save();render()}else{S.delArm=d.del;render()}return}
+  if(d.del){if(String(S.delArm)===d.del){S.delArm=null;var dr=E.filter(function(e){return String(e.id)===d.del})[0];E=E.filter(function(e){return String(e.id)!==d.del});if(dr){S.undo=dr;clearTimeout(S.undoT);S.undoT=setTimeout(function(){S.undo=null;toast()},10000)}closeForm();save();render()}else{S.delArm=d.del;render()}return}
   if(d.edit){
     var e=E.filter(function(x){return String(x.id)===d.edit})[0];if(!e)return;
     S.edit=e.id;S.form=true;S.f={date:e.date,store:e.store,kind:e.kind,rate:e.rate,inv:e.inv,rec:e.rec,memo:e.memo||''};
@@ -518,7 +561,7 @@ document.addEventListener('click',function(ev){
   if(b.id==='add'){
     readForm();var f=S.f,inv=Math.abs(parseInt(f.inv,10)||0),rec=Math.abs(parseInt(f.rec,10)||0);
     if(!inv&&!rec){S.fmsg='投資額か回収額を入力してください';return render()}
-    var r={id:S.edit||Date.now(),date:(S.edit&&/^\d{4}-\d{2}-\d{2}$/.test(f.date||''))?f.date:S.sel,store:f.store.trim(),kind:f.kind,rate:f.rate,inv:inv,rec:rec,amount:rec-inv,memo:(f.memo||'').trim()};
+    var r={id:S.edit||Date.now(),date:(S.edit&&/^\d{4}-\d{2}-\d{2}$/.test(f.date||''))?f.date:S.sel,store:f.store.trim(),kind:f.kind,rate:f.rate,inv:inv,rec:rec,amount:rec-inv,memo:(f.memo||'').trim(),c:S.edit?((E.filter(function(x){return x.id===S.edit})[0]||{}).c||0):(ST.cash!==null?1:0)};
     if(S.edit){E=E.map(function(x){return x.id===S.edit?r:x})}else E.push(r);
     save();S.fmsg='';S.edit=null;S.form=false;S.ym=r.date.slice(0,7);S.sel=r.date;S.f={store:r.store,kind:r.kind,rate:r.rate,inv:'',rec:'',memo:''};render();
   }
