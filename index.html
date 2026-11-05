@@ -225,6 +225,10 @@ function cashNow(){
 }
 function fmtD(d){return d.slice(0,4)+'/'+Number(d.slice(5,7))+'/'+Number(d.slice(8))}
 function sg(n){return (n<0?'−':'')+Math.abs(n).toLocaleString()}
+function wrRec(list){
+  var n=list.length,w=list.filter(function(e){return e.amount>0}).length;
+  return n?Math.round(w/n*100)+'% ('+w+'/'+n+'回)':'';
+}
 function monthTotal(a){
   var t=sum(a,'amount'),cn=cashNow(),tot=loanTotal();
   var h='<div class="card" style="padding:10px 14px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="sub" style="font-size:16px">月計</span><b class="'+cls(t)+'" style="font-size:26px">'+yen(t)+'</b></div>';
@@ -239,7 +243,7 @@ function breakdown(a,title,fn){
   var m=group(a,fn),k=Object.keys(m).sort(function(x,y){return m[y]-m[x]}),ls={};
   a.forEach(function(e){var kk=fn(e);(ls[kk]=ls[kk]||[]).push(e)});
   if(!k.length)return '';
-  return '<div class="card"><h2>'+title+'</h2>'+k.map(function(x){var key='store|'+x,op=S.openRate===key;return '<button class="row rl" data-orate="'+esc(key)+'"><div class="l">'+esc(x)+'</div><div class="r '+cls(m[x])+'"><b class="am">'+yen(m[x])+'</b><small class="w">'+wr(ls[x])+'</small> <span class="sub">'+(op?'▾':'›')+'</span></div></button>'+(op?'<div style="padding:2px 0 8px 8px">'+ls[x].slice().sort(function(p,q){return p.date<q.date?1:p.date>q.date?-1:q.id-p.id}).map(recRow).join('')+'</div>':'')}).join('')+'</div>';
+  return '<div class="card"><h2>'+title+'</h2>'+k.map(function(x){var key='store|'+x,op=S.openRate===key;return '<button class="row rl" data-orate="'+esc(key)+'"><div class="l">'+esc(x)+'</div><div class="r '+cls(m[x])+'"><b class="am">'+yen(m[x])+'</b><small class="w">'+wrRec(ls[x])+'</small> <span class="sub">'+(op?'▾':'›')+'</span></div></button>'+(op?'<div style="padding:2px 0 8px 8px">'+ls[x].slice().sort(function(p,q){return p.date<q.date?1:p.date>q.date?-1:q.id-p.id}).map(recRow).join('')+'</div>':'')}).join('')+'</div>';
 }
 function ymLabel(){var p=S.ym.split('-');return p[0]+'年'+Number(p[1])+'月'}
 function toast(){
@@ -404,8 +408,8 @@ function rateBreakdown(a){
     var l=a.filter(function(e){return e.kind===k});if(!l.length)return;
     var m=group(l,function(e){return e.rate||'レートなし'}),ks=Object.keys(m).sort(function(x,y){var p=RATES[k].indexOf(x),q=RATES[k].indexOf(y);if(p<0)p=999;if(q<0)q=999;return p-q||(m[y]-m[x])}),t=sum(l,'amount'),ls={};
     l.forEach(function(e){var kk=e.rate||'レートなし';(ls[kk]=ls[kk]||[]).push(e)});
-    h+='<div class="row" style="'+(first?'border-top:0;':'border-top:2px solid var(--line);margin-top:6px;')+'font-weight:700"><div class="l"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+cols[k]+';margin-right:8px"></span>'+names[k]+'</div><div class="r '+cls(t)+'"><b class="am">'+yen(t)+'</b><small class="w">'+wr(l)+'</small> <span class="sub" style="visibility:hidden">›</span></div></div>'
-     +ks.map(function(x){var key=k+'|'+x,op=S.openRate===key;return '<button class="row rl" data-orate="'+esc(key)+'" style="padding-left:20px"><div class="l">'+esc(x)+'</div><div class="r '+cls(m[x])+'"><b class="am">'+yen(m[x])+'</b><small class="w">'+wr(ls[x])+'</small> <span class="sub">'+(op?'▾':'›')+'</span></div></button>'+(op?'<div style="padding:2px 0 8px 20px">'+ls[x].slice().sort(function(p,q){return p.date<q.date?1:p.date>q.date?-1:q.id-p.id}).map(recRow).join('')+'</div>':'')}).join('');
+    h+='<div class="row" style="'+(first?'border-top:0;':'border-top:2px solid var(--line);margin-top:6px;')+'font-weight:700"><div class="l"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+cols[k]+';margin-right:8px"></span>'+names[k]+'</div><div class="r '+cls(t)+'"><b class="am">'+yen(t)+'</b><small class="w">'+wrRec(l)+'</small> <span class="sub" style="visibility:hidden">›</span></div></div>'
+     +ks.map(function(x){var key=k+'|'+x,op=S.openRate===key;return '<button class="row rl" data-orate="'+esc(key)+'" style="padding-left:20px"><div class="l">'+esc(x)+'</div><div class="r '+cls(m[x])+'"><b class="am">'+yen(m[x])+'</b><small class="w">'+wrRec(ls[x])+'</small> <span class="sub">'+(op?'▾':'›')+'</span></div></button>'+(op?'<div style="padding:2px 0 8px 20px">'+ls[x].slice().sort(function(p,q){return p.date<q.date?1:p.date>q.date?-1:q.id-p.id}).map(recRow).join('')+'</div>':'')}).join('');
     first=false;
   });
   return h?'<div class="card"><h2>レート別</h2>'+h+'</div>':'';
