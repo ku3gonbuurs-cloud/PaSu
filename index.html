@@ -69,6 +69,14 @@ select{padding:8px 4px;border:1px solid var(--line);border-radius:10px;backgroun
 .fsz button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
 .bar{height:14px;background:var(--line);border-radius:7px;overflow:hidden;margin:6px 0}
 .bar i{display:block;height:100%}
+.amt{position:relative}
+.amt input{width:100%;min-width:0;padding-right:96px}
+.amt select{position:absolute;top:0;bottom:0;width:46px;opacity:0;font-size:18px;border:0;padding:0}
+.amt select.amh{right:0}
+.amt select.amts{right:46px}
+.amt .ico{position:absolute;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--ac);font-size:14px;font-weight:700;white-space:nowrap}
+.amt .ico.h{right:7px}
+.amt .ico.k{right:53px}
 .go{width:100%;margin-top:12px;padding:12px;border:0;border-radius:12px;background:var(--ac);color:#fff;font-size:19px;font-weight:700}
 .big{font-size:38px;font-weight:700;text-align:center;margin:2px 0}
 .pl{color:var(--pl)}.mi{color:var(--mi)}.hd{color:var(--hd)}
@@ -83,6 +91,7 @@ select{padding:8px 4px;border:1px solid var(--line);border-radius:10px;backgroun
 .toast{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;background:#2b3243;color:#fff;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.35);max-width:536px;margin:0 auto;font-size:15px}
 .toast:empty{display:none}
 .toast button{background:#fff;color:#1d2330;border:0;border-radius:8px;padding:9px 14px;font-size:16px;font-weight:700;white-space:nowrap;font-family:inherit}
+.cal .d b.ln{color:var(--sub);font-weight:600;margin-top:1px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .chip{border:1px solid var(--line);background:var(--bg);color:var(--tx);border-radius:18px;padding:8px 12px;font-size:15px;font-family:inherit}
 .chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
@@ -127,9 +136,12 @@ try{var xr=JSON.parse(localStorage.getItem(RKEY)||'{}');KINDS.forEach(function(k
 function syncRates(){KINDS.forEach(function(k){var l=BASE[k].slice();X[k].forEach(function(r){if(l.indexOf(r)<0)l.push(r)});l.sort(function(a,b){var x=parseFloat(a),y=parseFloat(b);if(isNaN(x)&&isNaN(y))return 0;if(isNaN(x))return 1;if(isNaN(y))return -1;return x-y});RATES[k]=l})}
 syncRates();
 function saveRates(){try{localStorage.setItem(RKEY,JSON.stringify(X))}catch(e){}}
-var ST={fs:'s',limit:0,last:'',cash:null,cashDate:''};
-try{var sj=JSON.parse(localStorage.getItem('pachi-set-v1')||'{}');if(sj.fs)ST.fs=sj.fs;ST.limit=Number(sj.limit)||0;ST.last=sj.last||'';ST.cash=(sj.cash===undefined||sj.cash===null)?null:Number(sj.cash);ST.cashDate=sj.cashDate||''}catch(e){}
+var ST={fs:'s',limit:0,last:'',cash:null,cashDate:'',loanBase:0,loanBaseDate:''};
+try{var sj=JSON.parse(localStorage.getItem('pachi-set-v1')||'{}');if(sj.fs)ST.fs=sj.fs;ST.limit=Number(sj.limit)||0;ST.last=sj.last||'';ST.cash=(sj.cash===undefined||sj.cash===null)?null:Number(sj.cash);ST.cashDate=sj.cashDate||'';ST.loanBase=Number(sj.loanBase)||0;ST.loanBaseDate=sj.loanBaseDate||''}catch(e){}
 function saveST(){try{localStorage.setItem('pachi-set-v1',JSON.stringify(ST))}catch(e){}}
+var LKEY='pachi-loans-v1',L=[];
+try{L=JSON.parse(localStorage.getItem(LKEY)||'[]')||[]}catch(e){L=[]}
+function saveL(){try{localStorage.setItem(LKEY,JSON.stringify(L))}catch(e){}}
 function applyFs(){document.documentElement.setAttribute('data-fs',ST.fs)}
 applyFs();
 try{E=JSON.parse(localStorage.getItem(KEY)||'[]')||[]}catch(e){E=[]}
@@ -206,15 +218,21 @@ function wr(list){
   var dm=group(list,function(e){return e.date}),ks=Object.keys(dm),w=ks.filter(function(k){return dm[k]>0}).length;
   return ks.length?Math.round(w/ks.length*100)+'% ('+w+'/'+ks.length+'日)':'';
 }
+function loanTotal(){return (ST.loanBase||0)+sum(L.filter(function(l){return l.type!=='repay'}),'amount')-sum(L.filter(function(l){return l.type==='repay'}),'amount')}
 function cashNow(){
   if(ST.cash===null||ST.cash===undefined)return null;
-  return ST.cash+sum(E.filter(function(e){return e.c}),'amount');
+  return ST.cash+sum(E.filter(function(e){return e.c}),'amount')+L.filter(function(l){return l.c}).reduce(function(t,l){return t+(l.type==='repay'?1:-1)*(l.dc||0)},0);
 }
+function fmtD(d){return d.slice(0,4)+'/'+Number(d.slice(5,7))+'/'+Number(d.slice(8))}
+function sg(n){return (n<0?'−':'')+Math.abs(n).toLocaleString()}
 function monthTotal(a){
-  var t=sum(a,'amount'),cn=cashNow();
+  var t=sum(a,'amount'),cn=cashNow(),tot=loanTotal();
   var h='<div class="card" style="padding:10px 14px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="sub" style="font-size:16px">月計</span><b class="'+cls(t)+'" style="font-size:26px">'+yen(t)+'</b></div>';
-  if(S.cashEdit)h+='<div style="border-top:1px solid var(--line);margin-top:8px;padding-top:8px"><label style="margin-top:0">現在の現金(円・空で解除)</label><input type="number" inputmode="numeric" id="f-cash" value="'+(cn===null?'':cn)+'"><div class="seg" style="margin-top:8px"><button id="cash-save" class="on">保存</button><button id="cash-cancel">キャンセル</button></div><div class="sub" style="margin-top:6px">これから記録する収支は、現金に自動で足し引きされます</div></div>';
-  else h+='<div style="border-top:1px solid var(--line);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="sub" style="font-size:16px">現在の現金'+(cn!==null&&ST.cashDate?'<small style="display:block;font-size:12px">'+ST.cashDate.slice(0,4)+'/'+Number(ST.cashDate.slice(5,7))+'/'+Number(ST.cashDate.slice(8))+' に入力</small>':'')+'</span><span style="white-space:nowrap"><b style="font-size:22px">'+(cn===null?'未設定':(cn<0?'−':'')+Math.abs(cn).toLocaleString()+'円')+'</b> <button id="cash-open" class="tdy2">'+(cn===null?'設定':'変更')+'</button></span></div>';
+  var bt='border-top:1px solid var(--line);margin-top:8px;padding-top:8px';
+  if(S.cashEdit)h+='<div style="'+bt+'"><label style="margin-top:0">現在の現金(円・空で解除)</label><input type="number" inputmode="numeric" id="f-cash" value="'+(cn===null?'':cn)+'"><div class="seg" style="margin-top:8px"><button id="cash-save" class="on">保存</button><button id="cash-cancel">キャンセル</button></div><div class="sub" style="margin-top:6px">これから記録する収支は、現金に自動で足し引きされます。貸したお金は、入力するときに現金から引くかを選べます</div></div>';
+  else h+='<div style="'+bt+';display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="sub" style="font-size:16px">現在の現金'+(cn!==null&&ST.cashDate?'<small style="display:block;font-size:12px">'+fmtD(ST.cashDate)+' に入力</small>':'')+'</span><span style="white-space:nowrap"><b style="font-size:22px">'+(cn===null?'未設定':sg(cn)+'円')+'</b> <button id="cash-open" class="tdy2">'+(cn===null?'設定':'変更')+'</button></span></div>';
+  if(S.loanEdit)h+='<div style="'+bt+'"><label style="margin-top:0">貸したお金の累計(円)</label><input type="number" inputmode="numeric" id="f-lbase" value="'+tot+'"><div class="seg" style="margin-top:8px"><button id="lbase-save" class="on">保存</button><button id="lbase-cancel">キャンセル</button></div><div class="sub" style="margin-top:6px">これから記録する貸し借りは、入れた金額に足し引きされます</div></div>';
+  else h+='<div style="'+bt+';display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="sub" style="font-size:16px">貸したお金 累計'+(ST.loanBaseDate?'<small style="display:block;font-size:12px">'+fmtD(ST.loanBaseDate)+' に変更</small>':'')+'</span><span style="white-space:nowrap"><b style="font-size:22px">('+sg(tot)+'円)</b> <button id="lbase-open" class="tdy2">変更</button></span></div>';
   return h+'</div>';
 }
 function breakdown(a,title,fn){
@@ -229,7 +247,7 @@ function toast(){
   var u=S.undo;
   t.innerHTML=u?'<span>削除しました('+Number(u.date.slice(5,7))+'/'+Number(u.date.slice(8))+' '+esc(u.store||'店舗名なし')+' '+yen(u.amount)+')</span><button id="undo">元に戻す</button>':'';
 }
-function closeForm(){S.fmsg='';if(S.edit)S.f=blank();S.edit=null;S.form=false}
+function closeForm(){S.fmsg='';S.loanForm=false;S.ledit=null;S.lmsg='';if(S.edit)S.f=blank();S.edit=null;S.form=false}
 function yearList(){
   var ys={},c=new Date().getFullYear();ys[c]=1;ys[c+1]=1;ys[S.y]=1;ys[S.ym.slice(0,4)]=1;
   E.forEach(function(e){ys[e.date.slice(0,4)]=1});
@@ -237,6 +255,46 @@ function yearList(){
   for(var y=mn;y<=mx;y++)l.push(y);return l;
 }
 function opts(list,cur){return list.map(function(v){return '<option value="'+v+'"'+(String(v)===String(cur)?' selected':'')+'>'+v+'</option>'}).join('')}
+function calLoan(v){
+  var a=Math.abs(v),t='('+(v<0?'−':'')+(a>=100000?(Math.round(a/1000)/10)+'万':a.toLocaleString())+')',em=0;
+  t.split('').forEach(function(ch){em+=/\d/.test(ch)?.58:(ch===','||ch==='.')?.3:ch==='万'?1.05:(ch==='('||ch===')')?.35:.62});
+  return '<b class="ln" style="font-size:min(12px,'+(94/em).toFixed(1)+'cqw)">'+t+'</b>';
+}
+function amtField(id,val){
+  var cur=parseInt(val,10)||0,base=Math.floor(cur/1000)*1000,hb=Math.floor((cur%1000)/100)*100,max=Math.max(300000,base+10000),o='',h='',has=String(val)!=='';
+  for(var v=0;v<=max;v+=1000)o+='<option value="'+v+'"'+(v===base&&has?' selected':'')+'>'+v.toLocaleString()+'円</option>';
+  for(var w=0;w<=900;w+=100)h+='<option value="'+w+'"'+(w===hb&&has?' selected':'')+'>'+w.toLocaleString()+'円</option>';
+  return '<div class="amt"><input type="number" inputmode="numeric" min="0" id="'+id+'" value="'+esc(val)+'"><select class="amh" data-for="'+id+'" aria-label="百円単位で選ぶ">'+h+'</select><select class="amts" data-for="'+id+'" aria-label="千円単位で選ぶ">'+o+'</select><span class="ico k">千▾</span><span class="ico h">百▾</span></div>';
+}
+function syncAmt(id){
+  if(!document.querySelector)return;
+  var inp=document.getElementById(id),sel=document.querySelector('select.amts[data-for="'+id+'"]');if(!inp||!sel)return;
+  var cur=parseInt(inp.value,10)||0,b=Math.floor(cur/1000)*1000;
+  if(!sel.querySelector('option[value="'+b+'"]')){var op=document.createElement('option');op.value=b;op.textContent=b.toLocaleString()+'円';sel.appendChild(op)}
+  sel.value=b;
+  var hs=document.querySelector('select.amh[data-for="'+id+'"]');if(hs)hs.value=Math.floor((cur%1000)/100)*100;
+}
+function newLF(t,m){return{type:t||'lend',amt:'',memo:'',date:'',dmode:m||'none',dpart:''}}
+function readLoan(){if(!document.getElementById('l-amt'))return;S.lf.amt=g('l-amt');S.lf.memo=g('l-memo');if(document.getElementById('l-dcpart'))S.lf.dpart=g('l-dcpart');if(document.getElementById('l-date'))S.lf.date=g('l-date')}
+function loanRow(l){
+  var q=String(S.delArm)==='L'+l.id;
+  return '<div class="row"><div class="l"><b>'+(l.type==='repay'?'返してもらった':'貸した')+'</b><small>'+esc(l.memo||'')+(l.dc&&l.c?(l.memo?' ・ ':'')+'現金 '+(l.type==='repay'?'+':'−')+l.dc.toLocaleString()+'円':'')+'</small></div><div class="r"><b>('+(l.type==='repay'?'−':'')+l.amount.toLocaleString()+'円)</b><div class="act"><button data-eloan="'+l.id+'">編集</button><button data-dloan="'+l.id+'"'+(q?' style="color:var(--mi);font-weight:700"':'')+'>'+(q?'本当に削除':'削除')+'</button></div></div></div>';
+}
+function loanCards(){
+  var dl=L.filter(function(l){return l.date===S.sel}),lf=S.lf||(S.lf=newLF());
+  var h='<div class="card"><div class="dh"><h2>貸したお金 <span class="sub" style="font-size:13px;font-weight:400">(収支に入りません)</span></h2>'+(S.loanForm?'':'<button id="open-loan">＋ 貸し</button>')+'</div>';
+  h+=dl.length?dl.map(loanRow).join(''):'<div class="empty" style="padding:6px 0">この日の記録はありません</div>';
+  h+='</div>';
+  if(S.loanForm){
+    h+='<div class="card"><h2>'+(S.ledit?'貸し借りを編集':'貸したお金を入力')+'</h2><label>種類</label><div class="seg"><button data-ltype="lend" class="'+(lf.type==='lend'?'on':'')+'">貸した</button><button data-ltype="repay" class="'+(lf.type==='repay'?'on':'')+'">返してもらった</button></div>';
+    if(S.ledit)h+='<label>日付</label><input type="date" id="l-date" value="'+esc(lf.date||S.sel)+'">';
+    h+='<div class="two"><div><label>金額(円)</label>'+amtField('l-amt',lf.amt)+'</div><div><label>相手・メモ(任意)</label><input type="text" id="l-memo" value="'+esc(lf.memo)+'"></div></div>';
+    if(ST.cash!==null){var rp2=lf.type==='repay';h+='<label>'+(rp2?'現金に足すか':'現金から引くか')+'</label><div class="seg">'+[['none',rp2?'足さない':'引かない'],['all',rp2?'全額足す':'全額引く'],['part',rp2?'一部足す':'一部引く']].map(function(x){return '<button data-ldm="'+x[0]+'" class="'+((lf.dmode||'none')===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div>';
+      if(lf.dmode==='part')h+='<label>'+(rp2?'足す金額(円)':'引く金額(円)')+'</label>'+amtField('l-dcpart',lf.dpart);}
+    h+=(S.lmsg?'<div style="color:var(--mi);font-weight:700;margin-top:8px">'+esc(S.lmsg)+'</div>':'')+'<button class="go" id="loan-save">'+(S.ledit?'更新する':'記録する')+'</button><button class="go" id="loan-cancel" style="background:var(--sub)">'+(S.ledit?'キャンセル':'閉じる')+'</button></div>';
+  }
+  return h;
+}
 function calAmt(v){
   var a=Math.abs(v),sg=v<0?'−':'',t=a>=100000?sg+(Math.round(a/1000)/10)+'万':sg+a.toLocaleString(),em=0;
   t.split('').forEach(function(ch){em+=/\d/.test(ch)?.58:(ch===','||ch==='.')?.3:ch==='万'?1.05:.62});
@@ -281,12 +339,13 @@ function viewCal(){
   var a=byMonth(),p=S.ym.split('-'),Y=Number(p[0]),M=Number(p[1]);
   var first=new Date(Y,M-1,1).getDay(),n=new Date(Y,M,0).getDate(),dm={};
   a.forEach(function(e){dm[e.date]=(dm[e.date]||0)+e.amount});
+  var lm={};L.forEach(function(l){if(l.date.slice(0,7)===S.ym)lm[l.date]=(lm[l.date]||0)+(l.type==='repay'?-l.amount:l.amount)});
   var h=nav(ymLabel(),'mo')+monthTotal(a);
   h+='<div class="card" style="padding:8px"><div class="cal">'+'日月火水木金土'.split('').map(function(c,i){return '<div class="h'+(i===0?' r':'')+'">'+c+'</div>'}).join('');
   for(var i=0;i<first;i++)h+='<div class="d e"></div>';
   for(var d=1;d<=n;d++){
     var ds=S.ym+'-'+pad(d),v=dm[ds],has=v!==undefined;
-    h+='<button class="d'+(isRed(ds)?' r':'')+(has?(v>0?' p':v<0?' m':''):'')+(ds===today()?' t':'')+(ds===S.sel?' s':'')+'" data-day="'+ds+'"><i>'+d+'</i>'+(has?calAmt(v):'<b></b>')+'</button>';
+    h+='<button class="d'+(isRed(ds)?' r':'')+(has?(v>0?' p':v<0?' m':''):'')+(ds===today()?' t':'')+(ds===S.sel?' s':'')+'" data-day="'+ds+'"><i>'+d+'</i>'+(has?calAmt(v):'<b></b>')+(lm[ds]?calLoan(lm[ds]):'')+'</button>';
   }
   h+='</div></div>';
   if(S.sel&&S.sel.slice(0,7)===S.ym){
@@ -294,15 +353,16 @@ function viewCal(){
     h+='<div class="card" id="daycard"><div class="dh"><h2>'+Number(S.sel.slice(5,7))+'月'+Number(S.sel.slice(8))+'日('+dow(S.sel)+')'+(hn(S.sel)?' <span class="hd">'+hn(S.sel)+'</span>':'')+' の記録'+(de.length?' <span class="'+cls(dt)+'">'+yen(dt)+'</span>':'')+'</h2>'+(S.form?'':'<button id="open-form">＋ 入力</button>')+'</div>';
     h+=de.length?de.map(function(e){return rowHtml(e,false)}).join(''):'<div class="empty">この日の記録はありません</div>';
     h+='</div>';
+    h+=loanCards();
     if(S.form){h+='<div class="card"><h2>'+(S.edit?'記録を編集':'この日の収支を入力')+'</h2>';
     if(S.edit)h+='<label>日付</label><input type="date" id="f-date" value="'+esc(f.date||S.sel)+'">';
     h+='<label>店舗</label><input type="text" id="f-store" autocomplete="off" placeholder="店名(空でもOK)" value="'+esc(f.store)+'"><div class="sugg" id="sugg"></div>';
-    h+='<label>機種</label><div class="seg"><button data-kind="slot" class="k-slot '+(f.kind==='slot'?'on':'')+'">スロット</button><button data-kind="pachi" class="k-pachi '+(f.kind==='pachi'?'on':'')+'">パチンコ</button><button data-kind="other" class="k-other '+(f.kind==='other'?'on':'')+'" style="flex:.85 1 0;font-size:15px">その他</button></div>';
+    h+='<label>機種</label><div class="seg"><button data-kind="slot" class="k-slot '+(f.kind==='slot'?'on':'')+'">スロット</button><button data-kind="pachi" class="k-pachi '+(f.kind==='pachi'?'on':'')+'">パチンコ</button><button data-kind="other" class="k-other '+(f.kind==='other'?'on':'')+'" style="flex:0 0 auto;padding:13px 14px;font-size:15px;white-space:nowrap">その他</button></div>';
     var rl=RATES[f.kind].slice();if(f.rate&&rl.indexOf(f.rate)<0)rl.push(f.rate);
     h+='<label>レート'+(f.kind==='other'?'(任意)':'')+'</label><div class="seg g3">'+rl.map(function(r){return '<button data-rate="'+esc(r)+'" class="k-'+f.kind+' '+(f.rate===r?'on':'')+'">'+esc(r)+'</button>'}).join('')+'</div><div class="seg" style="margin-top:8px"><button id="rate-open" style="flex:0 0 88px;font-size:15px">＋追加</button><button id="rate-del" style="flex:0 0 88px;font-size:15px"'+(X[f.kind].indexOf(f.rate)<0?' disabled':'')+'>削除</button></div>';
     if(S.addRate)h+='<div class="two" style="margin-top:8px"><div style="flex:2"><input type="text" id="f-newrate" placeholder="例: 2 / 0.5 / 2スロ / メダル"></div><div style="flex:1"><button class="go" id="rate-add" style="margin-top:0;padding:13px">追加</button></div></div>';
     if(X[f.kind].length)h+='<div class="sub" style="margin-top:6px">追加したレートを選んで「削除」で消せます</div>';
-    h+='<div class="two"><div><label>投資額(円)</label><input type="number" inputmode="numeric" min="0" id="f-inv" value="'+f.inv+'"></div><div><label>回収額(円)</label><input type="number" inputmode="numeric" min="0" id="f-rec" value="'+f.rec+'"></div></div>';
+    h+='<div class="two"><div><label>投資額(円)</label>'+amtField('f-inv',f.inv)+'</div><div><label>回収額(円)</label>'+amtField('f-rec',f.rec)+'</div></div><div class="sub" style="margin-top:4px">右の 千▾ 百▾ をタップすると、1,000円・100円単位で選べます</div>';
     h+='<div class="pv">収支 <span id="pv"></span></div>';
     h+='<label>メモ(任意)</label><input type="text" id="f-memo" value="'+esc(f.memo)+'">';
     h+=(S.fmsg?'<div style="color:var(--mi);font-weight:700;margin-top:8px">'+esc(S.fmsg)+'</div>':'')+'<button class="go" id="add">'+(S.edit?'更新する':'記録する')+'</button><button class="go" id="cancel" style="background:var(--sub)">'+(S.edit?'キャンセル':'閉じる')+'</button></div>';}
@@ -417,7 +477,7 @@ function viewAn(){
   var t=[['mo','月計'],['yr','年計'],['all','生涯']],v=S.an==='yr'?viewYr():S.an==='all'?viewAll():viewMo();
   return '<div class="seg" style="margin-bottom:12px">'+t.map(function(x){return '<button data-an="'+x[0]+'" class="'+((S.an||'mo')===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div>'+v;
 }
-function payload(){return JSON.stringify({app:'pachi-balance',version:1,exported:today(),rates:X,limit:ST.limit,cash:ST.cash,cashDate:ST.cashDate,entries:E})}
+function payload(){return JSON.stringify({app:'pachi-balance',version:1,exported:today(),rates:X,limit:ST.limit,cash:ST.cash,cashDate:ST.cashDate,loans:L,loanBase:ST.loanBase,loanBaseDate:ST.loanBaseDate,entries:E})}
 function setMsg(t){S.msg=t;var m=document.getElementById('msg');if(m)m.textContent=t}
 function viewData(){
   var h=bkBanner(true)+'<div class="card"><h2>書き出し(今の端末で)</h2><div class="sub">'+E.length+'件の記録をバックアップします。<br>最後の書き出し: '+(ST.last||'まだありません')+'</div>';
@@ -453,6 +513,12 @@ function doImport(replace){
   else{var ids={};E.forEach(function(e){ids[e.id]=1});var add=0;list.forEach(function(c){if(!ids[c.id]){ids[c.id]=1;c.c=0;E.push(c);add++}});S.msg=add+'件を追加しました(重複'+(list.length-add)+'件は除外)'}
   if(bad)S.msg+=' / 形式不正'+bad+'件は無視';
   if(o&&typeof o.cash==='number'&&(replace||ST.cash===null)){ST.cash=o.cash;ST.cashDate=o.cashDate||'';saveST()}
+  if(o&&typeof o.loanBase==='number'&&(replace||!ST.loanBase)){ST.loanBase=o.loanBase;ST.loanBaseDate=o.loanBaseDate||'';saveST()}
+  if(o&&Array.isArray(o.loans)){
+    var nl=[];o.loans.forEach(function(x,i){if(x&&/^\d{4}-\d{2}-\d{2}$/.test(x.date||'')){var am2=Math.abs(parseInt(x.amount,10)||0);if(am2)nl.push({id:Number(x.id)||Date.now()+i,date:x.date,amount:am2,type:x.type==='repay'?'repay':'lend',memo:String(x.memo||'').slice(0,100),dc:Math.max(0,Math.min(am2,parseInt(x.dc,10)||0)),c:x.c?1:0})}});
+    if(replace){L=nl}else{var li={};L.forEach(function(x){li[x.id]=1});nl.forEach(function(x){if(!li[x.id]){li[x.id]=1;x.c=0;L.push(x)}})}
+    saveL();
+  }
   save();render();
 }
 function markSaved(t){ST.last=today();saveST();setMsg(t)}
@@ -486,7 +552,10 @@ async function expShare(){
   }
 }
 document.addEventListener('change',function(e){
-  var id=e.target.id;S.openRate=null;
+  var id=e.target.id;
+  if(e.target.classList&&e.target.classList.contains('amh')){var ah=document.getElementById(e.target.dataset['for']);if(ah){var hc=parseInt(ah.value,10)||0;ah.value=Math.floor(hc/1000)*1000+Number(e.target.value)+hc%100;pv();syncAmt(e.target.dataset['for'])}return}
+  if(e.target.classList&&e.target.classList.contains('amts')){var ai=document.getElementById(e.target.dataset['for']);if(ai){var ac=parseInt(ai.value,10)||0;ai.value=Number(e.target.value)+ac%1000;pv()}return}
+  S.openRate=null;
   if(id==='sel-y'||id==='sel-m'){S.ym=g('sel-y')+'-'+pad(Number(g('sel-m')));S.sel=null;closeForm();return render()}
   if(id==='sel-yy'){S.y=g('sel-yy');return render()}
   if(id!=='imp-file')return;var f=e.target.files[0];if(!f)return;
@@ -501,11 +570,11 @@ function render(){
 function g(i){var x=document.getElementById(i);return x?x.value:''}
 function readForm(){if(!document.getElementById('f-store'))return;S.f.store=g('f-store');S.f.inv=g('f-inv');S.f.rec=g('f-rec');S.f.memo=g('f-memo');if(document.getElementById('f-date'))S.f.date=g('f-date')}
 function pv(){var x=document.getElementById('pv');if(!x)return;var v=(parseInt(g('f-rec'),10)||0)-(parseInt(g('f-inv'),10)||0);x.textContent=yen(v);x.className=cls(v)}
-document.addEventListener('input',function(e){var id=e.target.id;if(id==='f-inv'||id==='f-rec')pv();if(id==='f-store')showSugg()});
+document.addEventListener('input',function(e){var id=e.target.id;if(id==='f-inv'||id==='f-rec')pv();if(id==='f-inv'||id==='f-rec'||id==='l-amt'||id==='l-dcpart')syncAmt(id);if(id==='f-store')showSugg()});
 document.addEventListener('focusin',function(e){if(e.target.id==='f-store')showSugg()});
 document.addEventListener('focusout',function(e){if(e.target.id==='f-store')setTimeout(function(){var el=document.getElementById('sugg');if(el)el.innerHTML=''},400)});
 document.addEventListener('click',function(ev){
-  var b=ev.target.closest('button');if(!b)return;var d=b.dataset;if(!d.del)S.delArm=null;if(!d.orate)S.openRate=null;
+  var b=ev.target.closest('button');if(!b)return;var d=b.dataset;if(!d.del&&!d.dloan)S.delArm=null;if(!d.orate)S.openRate=null;
   if(d.t){readForm();S.tab=d.t;return render()}
   if(d.an){S.an=d.an;return render()}
   if(d.fs){ST.fs=d.fs;saveST();applyFs();return render()}
@@ -514,7 +583,7 @@ document.addEventListener('click',function(ev){
   if(b.id==='lim-open'){S.limEdit=true;render();var li=document.getElementById('f-limit');if(li)li.focus();return}
   if(b.id==='lim-save'){ST.limit=Math.max(0,parseInt(g('f-limit'),10)||0);saveST();S.limEdit=false;return render()}
   if(b.id==='lim-cancel'){S.limEdit=false;return render()}
-  if(b.id==='open-form'){S.form=true;render();var fs=document.getElementById('f-store');if(fs)fs.scrollIntoView({block:'center'});return}
+  if(b.id==='open-form'){S.form=true;S.loanForm=false;S.ledit=null;render();var fs=document.getElementById('f-store');if(fs)fs.scrollIntoView({block:'center'});return}
   if(d.day){readForm();closeForm();S.sel=d.day;return render()}
   if(d.kind){readForm();S.f.kind=d.kind;S.f.rate=DEF[d.kind];return render()}
   if(b.id==='rate-open'){readForm();S.addRate=!S.addRate;render();var ni=document.getElementById('f-newrate');if(ni)ni.focus();return}
@@ -528,9 +597,19 @@ document.addEventListener('click',function(ev){
   if(d.delrate){readForm();var kk=S.f.kind;X[kk]=X[kk].filter(function(r){return r!==d.delrate});syncRates();saveRates();if(S.f.rate===d.delrate)S.f.rate=DEF[kk];return render()}
   if(d.rate){readForm();S.f.rate=(S.f.kind==='other'&&S.f.rate===d.rate)?'':d.rate;return render()}
   if(b.id==='undo'){if(S.undo){E.push(S.undo);S.sel=S.undo.date;S.ym=S.undo.date.slice(0,7);S.undo=null;clearTimeout(S.undoT);save()}return render()}
+  if(b.id==='lbase-open'){S.loanEdit=true;render();var lbi=document.getElementById('f-lbase');if(lbi)lbi.focus();return}
+  if(b.id==='lbase-cancel'){S.loanEdit=false;return render()}
+  if(b.id==='lbase-save'){var lv=g('f-lbase').trim(),net=sum(L.filter(function(l){return l.type!=='repay'}),'amount')-sum(L.filter(function(l){return l.type==='repay'}),'amount');if(lv===''){if(ST.loanBase){ST.loanBase=0;ST.loanBaseDate=today()}}else{var ln2=parseInt(lv,10);if(isNaN(ln2))return;var nb=ln2-net;if(nb!==ST.loanBase){ST.loanBase=nb;ST.loanBaseDate=today()}}saveST();S.loanEdit=false;return render()}
+  if(b.id==='open-loan'){closeForm();S.loanForm=true;render();var la=document.getElementById('l-amt');if(la)la.scrollIntoView({block:'center'});return}
+  if(d.ltype){readLoan();S.lf.type=d.ltype;return render()}
+  if(d.ldm){readLoan();S.lf.dmode=d.ldm;return render()}
+  if(b.id==='loan-cancel'){var lt=S.lf.type;closeForm();S.lf=newLF(lt);return render()}
+  if(b.id==='loan-save'){readLoan();var lf2=S.lf,am=Math.abs(parseInt(lf2.amt,10)||0);if(!am){S.lmsg='金額を入力してください';return render()}var ld2=(S.ledit&&/^\d{4}-\d{2}-\d{2}$/.test(lf2.date||''))?lf2.date:S.sel;var dm2=lf2.dmode||'none',dc=dm2==='all'?am:dm2==='part'?Math.min(am,Math.max(0,parseInt(lf2.dpart,10)||0)):0,old=S.ledit?L.filter(function(x){return x.id===S.ledit})[0]:null;var lr={id:S.ledit||Date.now(),date:ld2,amount:am,type:lf2.type,memo:(lf2.memo||'').trim(),dc:dc,c:old?(old.c||0):(ST.cash!==null?1:0)};if(S.ledit){L=L.map(function(x){return x.id===S.ledit?lr:x})}else L.push(lr);saveL();var ty=lf2.type;closeForm();S.lf=newLF(ty);S.sel=ld2;S.ym=ld2.slice(0,7);return render()}
+  if(d.eloan){var lx=L.filter(function(x){return String(x.id)===d.eloan})[0];if(!lx)return;closeForm();S.ledit=lx.id;S.loanForm=true;S.lf={type:lx.type,amt:lx.amount,memo:lx.memo||'',date:lx.date,dmode:!lx.dc?'none':lx.dc>=lx.amount?'all':'part',dpart:lx.dc&&lx.dc<lx.amount?lx.dc:''};S.sel=lx.date;S.ym=lx.date.slice(0,7);render();var l2=document.getElementById('l-amt');if(l2)l2.scrollIntoView({block:'center'});return}
+  if(d.dloan){if(String(S.delArm)==='L'+d.dloan){S.delArm=null;L=L.filter(function(x){return String(x.id)!==d.dloan});saveL();render()}else{S.delArm='L'+d.dloan;render()}return}
   if(b.id==='cash-open'){S.cashEdit=true;render();var ci=document.getElementById('f-cash');if(ci)ci.focus();return}
   if(b.id==='cash-cancel'){S.cashEdit=false;return render()}
-  if(b.id==='cash-save'){var cv=g('f-cash').trim();if(cv===''){ST.cash=null;ST.cashDate=''}else{var cn2=parseInt(cv,10);if(isNaN(cn2))return;ST.cash=cn2;ST.cashDate=today()}E.forEach(function(e){e.c=0});save();saveST();S.cashEdit=false;return render()}
+  if(b.id==='cash-save'){var cv=g('f-cash').trim(),raw=cashNow();if(cv===''){ST.cash=null;ST.cashDate=''}else{var cn2=parseInt(cv,10);if(isNaN(cn2))return;if(cn2!==raw){ST.cash=cn2;ST.cashDate=today();E.forEach(function(e){e.c=0});L.forEach(function(l){l.c=0});save();saveL()}}saveST();S.cashEdit=false;return render()}
   if(d.orate){S.openRate=(S.openRate===d.orate)?null:d.orate;return render()}
   if(d.sg!==undefined){var si=document.getElementById('f-store');if(si)si.value=d.sg;S.f.store=d.sg;var sg=document.getElementById('sugg');if(sg)sg.innerHTML='';return}
   if(d.store){readForm();S.f.store=(S.f.store===d.store)?'':d.store;return render()}
