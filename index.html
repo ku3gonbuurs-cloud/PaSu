@@ -77,6 +77,8 @@ select{padding:8px 4px;border:1px solid var(--line);border-radius:10px;backgroun
 .amt .ico{position:absolute;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--ac);font-size:14px;font-weight:700;white-space:nowrap}
 .amt .ico.h{right:7px}
 .amt .ico.k{right:53px}
+.ops{display:flex;gap:6px;margin-top:8px}
+.ops button{flex:1;padding:10px 0;font-size:18px;border:1px solid var(--line);background:var(--bg);color:var(--tx);border-radius:10px;font-family:inherit}
 .go{width:100%;margin-top:12px;padding:12px;border:0;border-radius:12px;background:var(--ac);color:#fff;font-size:19px;font-weight:700}
 .big{font-size:38px;font-weight:700;text-align:center;margin:2px 0}
 .pl{color:var(--pl)}.mi{color:var(--mi)}.hd{color:var(--hd)}
@@ -218,6 +220,26 @@ function wr(list){
   var dm=group(list,function(e){return e.date}),ks=Object.keys(dm),w=ks.filter(function(k){return dm[k]>0}).length;
   return ks.length?Math.round(w/ks.length*100)+'% ('+w+'/'+ks.length+'日)':'';
 }
+function evalExpr(t){
+  var s2=String(t).normalize('NFKC').replace(/[,，円\s]/g,'').replace(/[×xX]/g,'*').replace(/÷/g,'/').replace(/[−‐‑‒–—―ー]/g,'-'),i=0;
+  if(!s2||!/^[0-9+\-*\/().]+$/.test(s2))return null;
+  function pk(){return s2[i]}
+  function num(){var m=/^\d+(\.\d+)?/.exec(s2.slice(i));if(!m)throw 0;i+=m[0].length;return parseFloat(m[0])}
+  function fac(){if(pk()==='-'){i++;return -fac()}if(pk()==='+'){i++;return fac()}if(pk()==='('){i++;var v=ex();if(pk()!==')')throw 0;i++;return v}return num()}
+  function te(){var v=fac();while(pk()==='*'||pk()==='/'){var o=s2[i++],r=fac();if(o==='/'&&r===0)throw 0;v=o==='*'?v*r:v/r}return v}
+  function ex(){var v=te();while(pk()==='+'||pk()==='-'){var o=s2[i++],r=te();v=o==='+'?v+r:v-r}return v}
+  try{var v=ex();if(i!==s2.length||!isFinite(v))return null;return Math.round(v)}catch(e){return null}
+}
+function calcText(t){
+  var x=String(t).trim();if(!x)return '';
+  var r=evalExpr(x);if(r===null)return '式が正しくありません';
+  return /[+\-*\/×÷＋－−()（）]/.test(x.replace(/^[-−－]/,''))?'= '+sg(r)+'円':'';
+}
+function calcPrev(id){var el=document.getElementById('calc-'+id),inp=document.getElementById(id);if(el&&inp)el.textContent=calcText(inp.value)}
+function calcField(id,val,txt,msg){
+  var v=(txt!==null&&txt!==undefined)?txt:val,lab={'+':'＋','-':'−','*':'×','/':'÷','(':'(',')':')'};
+  return '<input type="text" inputmode="decimal" autocomplete="off" id="'+id+'" value="'+esc(v)+'" placeholder="金額、または計算式 (例: 85000-3000)"><div class="ops">'+['+','-','*','/','(',')'].map(function(c){return '<button data-op="'+c+'" data-opfor="'+id+'">'+lab[c]+'</button>'}).join('')+'<button data-op="del" data-opfor="'+id+'">⌫</button></div><div class="sub" id="calc-'+id+'" style="margin-top:4px">'+calcText(v)+'</div>'+(msg?'<div style="color:var(--mi);font-weight:700;margin-top:4px">'+esc(msg)+'</div>':'');
+}
 function loanTotal(){return (ST.loanBase||0)+sum(L.filter(function(l){return l.type!=='repay'}),'amount')-sum(L.filter(function(l){return l.type==='repay'}),'amount')}
 function cashNow(){
   if(ST.cash===null||ST.cash===undefined)return null;
@@ -233,9 +255,9 @@ function monthTotal(a){
   var t=sum(a,'amount'),cn=cashNow(),tot=loanTotal();
   var h='<div class="card" style="padding:10px 14px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="sub" style="font-size:16px">月計</span><b class="'+cls(t)+'" style="font-size:26px">'+yen(t)+'</b></div>';
   var bt='border-top:1px solid var(--line);margin-top:8px;padding-top:8px';
-  if(S.cashEdit)h+='<div style="'+bt+'"><label style="margin-top:0">現在の現金(円・空で解除)</label><input type="number" inputmode="numeric" id="f-cash" value="'+(cn===null?'':cn)+'"><div class="seg" style="margin-top:8px"><button id="cash-save" class="on">保存</button><button id="cash-cancel">キャンセル</button></div><div class="sub" style="margin-top:6px">これから記録する収支は、現金に自動で足し引きされます。貸したお金は、入力するときに現金から引くかを選べます</div></div>';
+  if(S.cashEdit)h+='<div style="'+bt+'"><label style="margin-top:0">現在の現金(円・空で解除)</label>'+calcField('f-cash',cn===null?'':cn,S.ctext,S.cmsg)+'<div class="seg" style="margin-top:8px"><button id="cash-save" class="on">保存</button><button id="cash-cancel">キャンセル</button></div><div class="sub" style="margin-top:6px">これから記録する収支は、現金に自動で足し引きされます。貸したお金は、入力するときに現金から引くかを選べます</div></div>';
   else h+='<div style="'+bt+';display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="sub" style="font-size:16px">現在の現金'+(cn!==null&&ST.cashDate?'<small style="display:block;font-size:12px">'+fmtD(ST.cashDate)+' に入力</small>':'')+'</span><span style="white-space:nowrap"><b style="font-size:22px">'+(cn===null?'未設定':sg(cn)+'円')+'</b> <button id="cash-open" class="tdy2">'+(cn===null?'設定':'変更')+'</button></span></div>';
-  if(S.loanEdit)h+='<div style="'+bt+'"><label style="margin-top:0">貸したお金の累計(円)</label><input type="number" inputmode="numeric" id="f-lbase" value="'+tot+'"><div class="seg" style="margin-top:8px"><button id="lbase-save" class="on">保存</button><button id="lbase-cancel">キャンセル</button></div><div class="sub" style="margin-top:6px">これから記録する貸し借りは、入れた金額に足し引きされます</div></div>';
+  if(S.loanEdit)h+='<div style="'+bt+'"><label style="margin-top:0">貸したお金の累計(円)</label>'+calcField('f-lbase',tot,S.ltext,S.lmsg2)+'<div class="seg" style="margin-top:8px"><button id="lbase-save" class="on">保存</button><button id="lbase-cancel">キャンセル</button></div><div class="sub" style="margin-top:6px">これから記録する貸し借りは、入れた金額に足し引きされます</div></div>';
   else h+='<div style="'+bt+';display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="sub" style="font-size:16px">貸したお金 累計'+(ST.loanBaseDate?'<small style="display:block;font-size:12px">'+fmtD(ST.loanBaseDate)+' に変更</small>':'')+'</span><span style="white-space:nowrap"><b style="font-size:22px">('+sg(tot)+'円)</b> <button id="lbase-open" class="tdy2">変更</button></span></div>';
   return h+'</div>';
 }
@@ -574,7 +596,7 @@ function render(){
 function g(i){var x=document.getElementById(i);return x?x.value:''}
 function readForm(){if(!document.getElementById('f-store'))return;S.f.store=g('f-store');S.f.inv=g('f-inv');S.f.rec=g('f-rec');S.f.memo=g('f-memo');if(document.getElementById('f-date'))S.f.date=g('f-date')}
 function pv(){var x=document.getElementById('pv');if(!x)return;var v=(parseInt(g('f-rec'),10)||0)-(parseInt(g('f-inv'),10)||0);x.textContent=yen(v);x.className=cls(v)}
-document.addEventListener('input',function(e){var id=e.target.id;if(id==='f-inv'||id==='f-rec')pv();if(id==='f-inv'||id==='f-rec'||id==='l-amt'||id==='l-dcpart')syncAmt(id);if(id==='f-store')showSugg()});
+document.addEventListener('input',function(e){var id=e.target.id;if(id==='f-inv'||id==='f-rec')pv();if(id==='f-inv'||id==='f-rec'||id==='l-amt'||id==='l-dcpart')syncAmt(id);if(id==='f-store')showSugg();if(id==='f-cash'||id==='f-lbase')calcPrev(id)});
 document.addEventListener('focusin',function(e){if(e.target.id==='f-store')showSugg()});
 document.addEventListener('focusout',function(e){if(e.target.id==='f-store')setTimeout(function(){var el=document.getElementById('sugg');if(el)el.innerHTML=''},400)});
 document.addEventListener('click',function(ev){
@@ -601,9 +623,9 @@ document.addEventListener('click',function(ev){
   if(d.delrate){readForm();var kk=S.f.kind;X[kk]=X[kk].filter(function(r){return r!==d.delrate});syncRates();saveRates();if(S.f.rate===d.delrate)S.f.rate=DEF[kk];return render()}
   if(d.rate){readForm();S.f.rate=(S.f.kind==='other'&&S.f.rate===d.rate)?'':d.rate;return render()}
   if(b.id==='undo'){if(S.undo){E.push(S.undo);S.sel=S.undo.date;S.ym=S.undo.date.slice(0,7);S.undo=null;clearTimeout(S.undoT);save()}return render()}
-  if(b.id==='lbase-open'){S.loanEdit=true;render();var lbi=document.getElementById('f-lbase');if(lbi)lbi.focus();return}
-  if(b.id==='lbase-cancel'){S.loanEdit=false;return render()}
-  if(b.id==='lbase-save'){var lv=g('f-lbase').trim(),net=sum(L.filter(function(l){return l.type!=='repay'}),'amount')-sum(L.filter(function(l){return l.type==='repay'}),'amount');if(lv===''){if(ST.loanBase){ST.loanBase=0;ST.loanBaseDate=today()}}else{var ln2=parseInt(lv,10);if(isNaN(ln2))return;var nb=ln2-net;if(nb!==ST.loanBase){ST.loanBase=nb;ST.loanBaseDate=today()}}saveST();S.loanEdit=false;return render()}
+  if(b.id==='lbase-open'){S.loanEdit=true;S.ltext=null;S.lmsg2='';render();var lbi=document.getElementById('f-lbase');if(lbi)lbi.focus();return}
+  if(b.id==='lbase-cancel'){S.loanEdit=false;S.ltext=null;S.lmsg2='';return render()}
+  if(b.id==='lbase-save'){var lv=g('f-lbase').trim(),net=sum(L.filter(function(l){return l.type!=='repay'}),'amount')-sum(L.filter(function(l){return l.type==='repay'}),'amount');if(lv===''){if(ST.loanBase){ST.loanBase=0;ST.loanBaseDate=today()}}else{var ln2=evalExpr(lv);if(ln2===null){S.ltext=lv;S.lmsg2='式が正しくありません';return render()}var nb=ln2-net;if(nb!==ST.loanBase){ST.loanBase=nb;ST.loanBaseDate=today()}}saveST();S.loanEdit=false;S.ltext=null;S.lmsg2='';return render()}
   if(b.id==='open-loan'){closeForm();S.loanForm=true;render();var la=document.getElementById('l-amt');if(la)la.scrollIntoView({block:'center'});return}
   if(d.ltype){readLoan();S.lf.type=d.ltype;return render()}
   if(d.ldm){readLoan();S.lf.dmode=d.ldm;return render()}
@@ -611,9 +633,10 @@ document.addEventListener('click',function(ev){
   if(b.id==='loan-save'){readLoan();var lf2=S.lf,am=Math.abs(parseInt(lf2.amt,10)||0);if(!am){S.lmsg='金額を入力してください';return render()}var ld2=(S.ledit&&/^\d{4}-\d{2}-\d{2}$/.test(lf2.date||''))?lf2.date:S.sel;var dm2=lf2.dmode||'none',dc=dm2==='all'?am:dm2==='part'?Math.min(am,Math.max(0,parseInt(lf2.dpart,10)||0)):0,old=S.ledit?L.filter(function(x){return x.id===S.ledit})[0]:null;var lr={id:S.ledit||Date.now(),date:ld2,amount:am,type:lf2.type,memo:(lf2.memo||'').trim(),dc:dc,c:old?(old.c||0):(ST.cash!==null?1:0)};if(S.ledit){L=L.map(function(x){return x.id===S.ledit?lr:x})}else L.push(lr);saveL();var ty=lf2.type;closeForm();S.lf=newLF(ty);S.sel=ld2;S.ym=ld2.slice(0,7);return render()}
   if(d.eloan){var lx=L.filter(function(x){return String(x.id)===d.eloan})[0];if(!lx)return;closeForm();S.ledit=lx.id;S.loanForm=true;S.lf={type:lx.type,amt:lx.amount,memo:lx.memo||'',date:lx.date,dmode:!lx.dc?'none':lx.dc>=lx.amount?'all':'part',dpart:lx.dc&&lx.dc<lx.amount?lx.dc:''};S.sel=lx.date;S.ym=lx.date.slice(0,7);render();var l2=document.getElementById('l-amt');if(l2)l2.scrollIntoView({block:'center'});return}
   if(d.dloan){if(String(S.delArm)==='L'+d.dloan){S.delArm=null;L=L.filter(function(x){return String(x.id)!==d.dloan});saveL();render()}else{S.delArm='L'+d.dloan;render()}return}
-  if(b.id==='cash-open'){S.cashEdit=true;render();var ci=document.getElementById('f-cash');if(ci)ci.focus();return}
-  if(b.id==='cash-cancel'){S.cashEdit=false;return render()}
-  if(b.id==='cash-save'){var cv=g('f-cash').trim(),raw=cashNow();if(cv===''){ST.cash=null;ST.cashDate=''}else{var cn2=parseInt(cv,10);if(isNaN(cn2))return;if(cn2!==raw){ST.cash=cn2;ST.cashDate=today();E.forEach(function(e){e.c=0});L.forEach(function(l){l.c=0});save();saveL()}}saveST();S.cashEdit=false;return render()}
+  if(d.op){var oi=document.getElementById(d.opfor);if(oi){var p0=oi.selectionStart==null?oi.value.length:oi.selectionStart,p1=oi.selectionEnd==null?p0:oi.selectionEnd,np=p0;if(d.op==='del'){if(p1>p0){oi.value=oi.value.slice(0,p0)+oi.value.slice(p1)}else if(p0>0){oi.value=oi.value.slice(0,p0-1)+oi.value.slice(p0);np=p0-1}}else{oi.value=oi.value.slice(0,p0)+d.op+oi.value.slice(p1);np=p0+1}oi.focus();if(oi.setSelectionRange)oi.setSelectionRange(np,np);calcPrev(d.opfor)}return}
+  if(b.id==='cash-open'){S.cashEdit=true;S.ctext=null;S.cmsg='';render();var ci=document.getElementById('f-cash');if(ci)ci.focus();return}
+  if(b.id==='cash-cancel'){S.cashEdit=false;S.ctext=null;S.cmsg='';return render()}
+  if(b.id==='cash-save'){var cv=g('f-cash').trim(),raw=cashNow();if(cv===''){ST.cash=null;ST.cashDate=''}else{var cn2=evalExpr(cv);if(cn2===null){S.ctext=cv;S.cmsg='式が正しくありません';return render()}if(cn2!==raw){ST.cash=cn2;ST.cashDate=today();E.forEach(function(e){e.c=0});L.forEach(function(l){l.c=0});save();saveL()}}saveST();S.cashEdit=false;S.ctext=null;S.cmsg='';return render()}
   if(d.orate){S.openRate=(S.openRate===d.orate)?null:d.orate;return render()}
   if(d.sg!==undefined){var si=document.getElementById('f-store');if(si)si.value=d.sg;S.f.store=d.sg;var sg=document.getElementById('sugg');if(sg)sg.innerHTML='';return}
   if(d.store){readForm();S.f.store=(S.f.store===d.store)?'':d.store;return render()}
